@@ -1,7 +1,9 @@
-version: '3.8'
 services:
   app:
-    build: .
+    image: code-clash-prod:latest
+    build:
+      context: .
+      dockerfile: Dockerfile.prod
     ports:
       - "3000:3000"
     environment:
@@ -9,12 +11,10 @@ services:
     env_file:
       - .env
     depends_on:
-      - db
-    volumes:
-      - .:/app
-      - /app/node_modules
-    command: >
-      sh -c "npx prisma migrate deploy && npm run dev"
+      db:
+        condition: service_healthy
+    command: ["sh", "-c", "npx prisma migrate deploy && node dist/index.js"]
+
   db:
     image: postgres:15-alpine
     ports:
@@ -27,6 +27,11 @@ services:
       - .env
     volumes:
       - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER}"]
+      interval: 2s
+      timeout: 1s
+      retries: 5
 
 volumes:
   postgres_data:
