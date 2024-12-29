@@ -1,0 +1,3 @@
+GET /api/v1/health unknown 2024-12-29T15:16:21.920Z ::ffff:172.18.0.1
+GET /favicon.ico unknown 2024-12-29T15:16:22.103Z ::ffff:172.18.0.1
+GET /api/v1/health unknown 2024-12-29T15:17:03.324Z ::ffff:172.18.0.1

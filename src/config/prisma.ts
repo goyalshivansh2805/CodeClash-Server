@@ -1,21 +1,15 @@
-import { Client } from 'pg';
-import dotenv from 'dotenv';
+import { PrismaClient } from '@prisma/client';
 
-dotenv.config();
+const prismaClient = new PrismaClient();
 
-export async function connectDB(): Promise<Client> {
-  const client = new Client({
-    connectionString: process.env.DATABASE_URL,
-  });
-
+async function connectDB(): Promise<void> {
   try {
-    await client.connect();
+    await prismaClient.$connect();
     console.log("Connected to the database!");
-    return client;
   } catch (err) {
     console.error("Connection error", err);
     throw err;
   }
 }
 
-export default connectDB;
+export { prismaClient, connectDB };

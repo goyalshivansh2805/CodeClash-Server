@@ -5,7 +5,9 @@
   "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "dev": "nodemon --exec ts-node src/index.ts --watch src --ext ts"
+    "dev": "nodemon --exec ts-node src/index.ts --watch src --ext ts",
+    "build": "tsc",
+    "start": "node dist/index.js"
   },
   "repository": {
     "type": "git",
@@ -21,13 +23,16 @@
   "homepage": "https://github.com/goyalshivansh2805/CodeClash-Server#readme",
   "dependencies": {
     "@prisma/client": "^6.1.0",
-    "@types/express": "^5.0.0",
+    "@types/cors": "^2.8.17",
+    "cors": "^2.8.5",
     "dotenv": "^16.4.7",
     "express": "^4.21.2",
+    "express-rate-limit": "^7.5.0",
     "pg": "^8.13.1",
     "prisma": "^6.1.0"
   },
   "devDependencies": {
+    "@types/express": "^5.0.0",
     "@types/node": "^22.10.2",
     "@types/pg": "^8.11.10",
     "nodemon": "^3.1.9",

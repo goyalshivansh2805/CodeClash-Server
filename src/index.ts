@@ -1,35 +1,31 @@
-import express,{Request,Response} from 'express';
-import { Server } from 'http';
-import { connectDB } from './config/prisma';
-import { gracefulShutdown } from './utils/shutdown';
+import express, { NextFunction, Request, Response } from 'express';
+import {connectDB} from './config/prisma';
+import cors from 'cors';
+import {logRequest} from './middlewares';
+import {default as primaryRouter} from './routes/route';
+import { CustomError } from './types';
+import {errorHandler} from './middlewares';
 
 const app = express();
-const port = process.env.PORT || 3000;
-let server: Server;
+const PORT : number = Number(process.env.PORT) || 3000;
 
-async function startServer() {
-  try {
-    const dbClient = await connectDB();
-    
-    app.get('/health', (req:Request, res:Response) => {
-      res.json({ 
-        status: 'ok',
-        timestamp: new Date(),
-        database: 'connected hii'
-      });
+app.use(logRequest);
+app.use(cors());
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
+app.use('/api/v1', primaryRouter);
+
+
+app.use('*', (req: Request, res: Response,next:NextFunction) => {
+  const error = new CustomError('Resource not found!!!!', 404);
+  next(error);
+});
+
+app.use(errorHandler);
+
+
+connectDB().then(() => {
+    app.listen(PORT, () => {
+        console.log(`Server is running on port ${PORT}`);
     });
-
-    server = app.listen(port, () => {
-      console.log(`Server running on port ${port}`);
-    });
-
-    process.on('SIGTERM', () => gracefulShutdown(server, dbClient));
-    process.on('SIGINT', () => gracefulShutdown(server,dbClient));
-
-  } catch (error) {
-    console.error('Failed to start server:', error);
-    process.exit(1);
-  }
-}
-
-startServer();
+});
