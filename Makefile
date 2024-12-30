@@ -22,7 +22,7 @@ clean:
 	@echo "Cleanup complete."
 
 db-dev:
-	sudo docker compose -f docker-compose-development.yml exec db psql -U sg -d codeclash
+	sudo docker compose -f docker-compose-development.yml exec db psql -U anish -d codeclash
 
 db-prod:
-	sudo docker compose -f docker-compose.yml exec db psql -U sg -d codeclash
+	sudo docker compose -f docker-compose.yml exec db psql -U anish -d codeclash
