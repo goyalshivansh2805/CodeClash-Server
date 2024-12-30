@@ -13,6 +13,7 @@ type RequestBody = {
   profileImage?: string;
 };
 
+// register a new user
 export const registerUser = async (
   req: Request,
   res: Response,
