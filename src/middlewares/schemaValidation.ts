@@ -44,7 +44,8 @@ export const changePasswordSchema = z.object({
   newPassword: baseSchema.shape.password,
 });
 
-export const validateRequest = (schema: ZodSchema<any>) => {
+// function to validate the request body against the schema
+export const validateRequest =  <T>(schema: ZodSchema<T>) => {
   return (req: Request, res: Response, next: NextFunction) => {
     try {
       schema.parse(req.body); 
