@@ -1,16 +1,22 @@
 import { Response, Request, NextFunction } from "express";
-import { PrismaClient } from "@prisma/client";
+import { prisma } from "../../config";
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
 import { CustomError } from "../../types";
 
-const prisma = new PrismaClient();
-
-export const loginUser = [
-
-  async (req: Request, res: Response, next: NextFunction) => {
-    const { email, password } = req.body;
-
+/**
+ * Logs in a user by validating their email and password.
+ * @param {Request} req - The request object containing email and password.
+ * @param {Response} res - The response object to send the result.
+ * @param {NextFunction} next - The next middleware function in the stack.
+ */
+const loginUser = async (req: Request, res: Response, next: NextFunction) => {
+    let { email, password } = req.body;
+    email = email?.trim();
+    password = password?.trim();
+    if (!email || !password) {
+      next(new CustomError("Email and password are required", 400));
+    }
     try {
 
         const user = await prisma.user.findUnique({
@@ -18,37 +24,50 @@ export const loginUser = [
           });
 
       if (!user) {
-        next(new CustomError("Invalid email or password", 401));
+        next(new CustomError("User not found", 401));
         return;
       }
 
+      if(!user.password){
+        next(new CustomError("Password not set", 401));
+        return;
+      }
       const isPasswordValid = await bcrypt.compare(password, user.password);
       if (!isPasswordValid) {
-        next(new CustomError("Invalid email or password", 401));
+        next(new CustomError("Invalid password", 401));
         return;
       }
-
-      const token = jwt.sign(
-        { userId: user.id, email: user.email },
-        process.env.JWT_SECRET || "your_secret_key",
+      const accessTokenKey = process.env.ACCESS_TOKEN_SECRET;
+      const refreshTokenKey = process.env.REFRESH_TOKEN_SECRET;
+      if (!accessTokenKey || !refreshTokenKey) {
+        next(new CustomError("Something went wrong", 500));
+        return;
+      }
+      const accessToken = jwt.sign(
+        { userId: user.id,version:user.version },
+        accessTokenKey,
         { expiresIn: "1h" }
       );
-
+      const refreshToken = jwt.sign(
+        { userId: user.id ,version:user.version},
+        refreshTokenKey,
+        { expiresIn: "7d" }
+      );
       res.status(200).send({
         success: true,
         message: "Login successful",
-        token,
-        user: {
-          id: user.id,
-          email: user.email,
-          username: user.username,
-          profileImage: user.profileImage,
-          createdAt: user.createdAt,
-        },
+        data:{
+          tokens:{
+            accessToken,
+            refreshToken
+          }
+        }
       });
     } catch (error) {
       const err = error as Error;
       next(new CustomError("Something went wrong", 500, `${err.message}`));
     }
-  },
-];
+  };
+
+
+export default loginUser;

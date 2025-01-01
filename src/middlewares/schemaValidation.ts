@@ -3,7 +3,7 @@ import { NextFunction, Request, Response } from "express";
 import { CustomError } from "../types";
 
 const baseSchema = z.object({
-  name: z
+  username: z
     .string()
     .min(3, "Name should be more than 3 characters.")
     .optional(),
@@ -25,7 +25,7 @@ const baseSchema = z.object({
 }).strict();
 
 export const registerSchema = baseSchema.pick({
-  name: true,
+  username: true,
   email: true,
   password: true,
 });

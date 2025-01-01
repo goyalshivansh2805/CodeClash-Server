@@ -10,6 +10,20 @@ prod:
 	@echo "Production environment started in the background."
 	sudo docker compose -f docker-compose.yml logs -f app
 
+dev-rs:
+	sudo docker compose -f docker-compose-development.yml down
+	@echo "Containers stopped."
+	sudo docker compose -f docker-compose-development.yml up -d --build
+	@echo "Development environment started in the background."
+	sudo docker compose -f docker-compose-development.yml logs -f app
+
+prod-rs:
+	sudo docker compose -f docker-compose.yml down
+	@echo "Containers stopped."
+	sudo docker compose -f docker-compose.yml up -d --build
+	@echo "Production environment started in the background."
+	sudo docker compose -f docker-compose.yml logs -f app
+	
 down:
 	sudo docker compose -f docker-compose-development.yml down
 	sudo docker compose -f docker-compose.yml down
