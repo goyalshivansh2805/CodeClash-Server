@@ -1,18 +1,17 @@
-import express, { NextFunction, Request, Response } from 'express';
+import express, { NextFunction, Request, Response,json,urlencoded } from 'express';
 import {connectDB} from './config/prisma';
 import cors from 'cors';
-import {logRequest} from './middlewares';
-import {default as primaryRouter} from './routes/route';
-import { CustomError } from './types';
-import {errorHandler} from './middlewares';
+import {logRequest,errorHandler} from './middlewares';
+import {primaryRouter} from './routes';
+import {CustomError} from './types';
 
 const app = express();
 const PORT : number = Number(process.env.PORT) || 3000;
 
 app.use(logRequest);
 app.use(cors());
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
+app.use(json());
+app.use(urlencoded({ extended: true }));
 app.use('/api/v1', primaryRouter);
 
 

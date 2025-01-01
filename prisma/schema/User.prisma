@@ -1,10 +1,16 @@
 model User {
   id             String    @id @default(cuid())
   email          String    @unique
-  password       String    
+  password       String?    
   username       String?   
   profileImage   String?   
   createdAt      DateTime  @default(now())
   updatedAt      DateTime  @updatedAt
   version        Int       @default(1)
+  isVerified     Boolean   @default(false)
+  resetPasswordToken String?
+  resetPasswordExpires DateTime?
+  lastPasswordResetRequest DateTime?
+  googleId       String?
+  tempOAuthToken String?
 }

@@ -1,10 +1,16 @@
 import { PrismaClient } from '@prisma/client';
+import {setupOTPCleanup} from "../utility"
 
-const prismaClient = new PrismaClient();
+const prisma = new PrismaClient();
 
+/**
+ * Connects to the database and sets up OTP cleanup.
+ * @returns {Promise<void>} A promise that resolves when the connection is established.
+ */
 async function connectDB(): Promise<void> {
   try {
-    await prismaClient.$connect();
+    await prisma.$connect();
+    await setupOTPCleanup();
     console.log("Connected to the database!");
   } catch (err) {
     console.error("Connection error", err);
@@ -12,4 +18,4 @@ async function connectDB(): Promise<void> {
   }
 }
 
-export { prismaClient, connectDB };
+export { prisma, connectDB };
