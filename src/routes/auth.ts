@@ -1,5 +1,5 @@
 import {Router} from 'express';
-import { registerUser, loginUser,requestPasswordReset,resetPassword ,verifyOtp,resendOtp,isEmailExists,generateTokens,startGoogleOauth,googleOauthCallback} from '../controllers';
+import { registerUser, loginUser,requestPasswordReset,resetPassword ,verifyOtp,resendOtp,isEmailExists,generateTokens,startGoogleOauth,googleOauthCallback ,startGithubOauth , githubOauthCallback } from '../controllers';
 import { registerSchema, loginSchema, resetPasswordSchema, validateRequest } from "../middlewares";
 
 const router = Router();
@@ -16,5 +16,10 @@ router.post("/is-email-exists",isEmailExists);
 router.get("/google", startGoogleOauth);
 router.get("/google/callback", googleOauthCallback);
 router.get('/google/tokens',generateTokens);
-  
+
+// GitHub OAuth routes
+router.get("/github", startGithubOauth);
+router.get("/github/callback", githubOauthCallback);
+router.get('/github/tokens', generateTokens);
+
 export default router;
