@@ -1,3 +1,3 @@
 export {loginUser,registerUser,startGoogleOauth,googleOauthCallback , startGithubOauth, githubOauthCallback
-    ,resetPassword,requestPasswordReset,verifyOtp,sendOtpEmail,resendOtp,generateTokens,isEmailExists
+    ,resetPassword,requestPasswordReset,verifyOtp,sendOtpEmail,resendOtp,generateTokens,isEmailExists,refreshToken
 } from "./auth";

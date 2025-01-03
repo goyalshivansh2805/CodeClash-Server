@@ -16,11 +16,6 @@ services:
     volumes:
       - .:/app
       - /app/node_modules
-    command: >
-      sh -c "
-        npx prisma migrate deploy &&
-        npm run dev
-      "
 
   db:
     image: postgres:15-alpine
