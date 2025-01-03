@@ -2,7 +2,7 @@ import { Response, Request, NextFunction } from "express";
 import { prisma } from "../../config";
 import bcrypt from "bcrypt";
 import { sendOtpEmail } from "..";
-import { CustomError } from "../../types";
+import { CustomError, CustomOtpRequest } from "../../types";
 
 type RequestBody = {
   email: string;
@@ -12,7 +12,7 @@ type RequestBody = {
 
 // register a new user
 const registerUser = async (
-  req: Request,
+  req: CustomOtpRequest,
   res: Response,
   next: NextFunction
 ) => {
@@ -28,20 +28,17 @@ const registerUser = async (
   }
 
   try {
-
     const existingUser = await prisma.user.findUnique({
       where: { email },
     });
-
     if (existingUser?.isVerified) {
       next(new CustomError("Email already exists", 400));
       return;
-    }else if(existingUser && !existingUser.isVerified){
+    }else if (existingUser && !existingUser.isVerified) {
       await prisma.user.delete({
         where: { id: existingUser.id },
       });
     }
-
     const salt = await bcrypt.genSalt(10);
     const hashedPassword = await bcrypt.hash(password, salt);
 
