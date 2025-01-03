@@ -4,10 +4,10 @@ import { CustomError } from '../../types';
 import { OauthUser } from '../../interfaces';
 import jwt from 'jsonwebtoken';
 
-const startGoogleOauth = () => {
+const startGoogleOauth = (req:Request , res:Response,next:NextFunction) => {
     passport.authenticate("google", {
         scope: ["profile", "email"],
-      })
+      })(req, res, next);
 }
 
 const googleOauthCallback = (req:Request , res:Response,next:NextFunction) => {
@@ -49,7 +49,7 @@ const githubOauthCallback = (req: Request, res: Response, next: NextFunction) =>
 const generateTokens =async (req:Request,res:Response,next:NextFunction) => {
     try {
 
-      const tempOAuthToken = req.query.token as string;
+      const {tempOAuthToken} = req.body;
       if (!tempOAuthToken) {
         next(new CustomError("Invalid token", 400));
         return;

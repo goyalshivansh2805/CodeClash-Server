@@ -1,8 +1,40 @@
 import { NextFunction, Response,Request } from 'express';
-import {CustomError} from '../../types';
+import {CustomError, CustomOtpRequest} from '../../types';
 import { sendEmail } from '../../utility';
 import { prisma } from '../../config';
 import jwt from 'jsonwebtoken';
+
+
+const generateEmailContent = (otp: string, username: string, type: string) => {
+  const isRegister = type === "register";
+  const subjectText = isRegister
+    ? "Thank you for signing up for Classence! To verify your email address, please enter the One-Time Password (OTP) below:"
+    : "To log in to Classence, please enter the One-Time Password (OTP) below:";
+  const closingText = isRegister
+    ? "If you did not request this verification, please disregard this email."
+    : "If you did not attempt to log in, please disregard this email.";
+
+  return `
+      <body style="margin: 0; padding: 0; width: 100%; font-family: Arial, sans-serif;">
+          <div style="max-width: 600px; width: 100%; margin: 0 auto; padding: 20px; border: 1px solid #e0e0e0; border-radius: 10px; background-color: #f9fafb; box-sizing: border-box;">
+              <img src="https://i.ibb.co/41hPJtW/logo.png" alt="Logo" style="width: 80%; max-width: 150px; display: block; margin: 0 auto;">
+              <p style="color: #555; font-size: 18px; line-height: 1.5; text-align: center;">&nbsp;Hello ${username},</p>
+              <p style="color: #555; font-size: 16px; line-height: 1.6; text-align: center;">${subjectText}</p>
+              <div style="text-align: center; margin: 20px 0;">
+                  <span style="font-size: 24px; font-weight: bold; color: #066769;">${otp}</span>
+              </div>
+              <p style="color: #555; font-size: 16px; line-height: 1.6; text-align: center;">This OTP is valid for the next 10 minutes. Please keep it secure and do not share it with anyone.</p>
+              <p style="color: #555; font-size: 16px; line-height: 1.6; text-align: center;">${closingText}</p>
+              <p style="color: #555; font-size: 16px; line-height: 1.6; text-align: center;">Best regards,<br>CodeClash Team</p>
+              <hr style="border: 0; border-top: 1px solid #e0e0e0; margin: 30px 0;">
+              <p style="font-size: 13px; color: #a1a1a1; text-align: center; line-height: 1.5;">
+                  If you encounter any issues, please contact our support team at 
+                  <a href="mailto:codeclash.noreply@gmail.com" style="color: #066769; text-decoration: none;">classence.help@gmail.com</a>.
+              </p>
+          </div>
+      </body>
+      `;
+};
 
 /**
  * Sends an OTP to the user's email for verification.
@@ -10,7 +42,7 @@ import jwt from 'jsonwebtoken';
  * @param {Response} res - The response object.
  * @param {NextFunction} next - The next middleware function.
  */
-const sendOtpEmail = async (req: Request, res: Response, next: NextFunction) => {
+const sendOtpEmail = async (req: CustomOtpRequest, res: Response, next: NextFunction) => {
   try {
     const { email } = req.body;
     
@@ -35,29 +67,15 @@ const sendOtpEmail = async (req: Request, res: Response, next: NextFunction) => 
       }
       })
     ]);
-    const data = `
-      <body style="margin: 0; padding: 0; width: 100%; font-family: Arial, sans-serif;">
-          <div style="max-width: 600px; width: 100%; margin: 0 auto; padding: 20px; border: 1px solid #e0e0e0; border-radius: 10px; background-color: #f9fafb; box-sizing: border-box;">
-              <img src="https://i.ibb.co/41hPJtW/logo.png" alt="Logo" style="width: 80%; max-width: 150px; display: block; margin: 0 auto;">
-              <p style="color: #555; font-size: 18px; line-height: 1.5; text-align: center;">&nbsp;Hello ${user.username},</p>
-              <p style="color: #555; font-size: 16px; line-height: 1.6; text-align: center;">Thank you for signing up for Classence! To verify your email address, please enter the One-Time Password (OTP) below:</p>
-              <div style="text-align: center; margin: 20px 0;">
-                  <span style="font-size: 24px; font-weight: bold; color: #066769;">${otp}</span>
-              </div>
-              <p style="color: #555; font-size: 16px; line-height: 1.6; text-align: center;">This OTP is valid for the next 10 minutes. Please keep it secure and do not share it with anyone.</p>
-              <p style="color: #555; font-size: 16px; line-height: 1.6; text-align: center;">If you did not request this verification, please disregard this email.</p>
-              <p style="color: #555; font-size: 16px; line-height: 1.6; text-align: center;">Best regards,<br>CodeClash Team</p>
-              <hr style="border: 0; border-top: 1px solid #e0e0e0; margin: 30px 0;">
-              <p style="font-size: 13px; color: #a1a1a1; text-align: center; line-height: 1.5;">
-                  If you encounter any issues, please contact our support team at 
-                  <a href="mailto:codeclash.noreply@gmail.com" style="color: #066769; text-decoration: none;">classence.help@gmail.com</a>.
-              </p>
-          </div>
-      </body>
-      `;
-    
-    sendEmail(user.email, 'Your OTP for email verification', data)
-      .catch((error) => {console.log("Error sending email: ", error);});
+    const data = generateEmailContent(otp, user.username as string, req.type!);
+    if(req.type === "login"){
+      res.status(200).json({ success: true, message: 'OTP sent to your email' });
+    }
+    sendEmail(
+      user.email,
+      req.type === "register" ? "Your OTP for email verification" : "Your OTP for login",
+      data
+    ).catch((error) => {console.log("Error sending email: ", error);});
   } catch (error) {
     const err = error as Error;
     next(new CustomError('Something went wrong',500,`${err.message}`));
@@ -70,11 +88,12 @@ const sendOtpEmail = async (req: Request, res: Response, next: NextFunction) => 
  * @param {Response} res - The response object.
  * @param {NextFunction} next - The next middleware function.
  */
-const verifyOtp = async (req: Request, res: Response, next: NextFunction) => {
+const verifyOtp = async (req: CustomOtpRequest, res: Response, next: NextFunction) => {
   try {
     let { email, otp } = req.body;
-    email = email.trim();
-    if(!email || !otp){
+    email = email.trim().toLowerCase();
+    const type = req.type;
+    if(!email || !otp || !type){
       next(new CustomError("Email and OTP are required", 400));
       return;
     }
@@ -101,8 +120,12 @@ const verifyOtp = async (req: Request, res: Response, next: NextFunction) => {
       }
 
 
-      if (user.isVerified) {
+      if (user.isVerified && type === "register") {
         next(new CustomError("User Already Verified", 400));
+        return;
+      }
+      if (!user.isVerified && type === "login") {
+        next(new CustomError("User Not Verified", 400));
         return;
       }
 
@@ -136,7 +159,7 @@ const verifyOtp = async (req: Request, res: Response, next: NextFunction) => {
     
     res.status(200).json({
       success: true,
-      message: 'Email verified successfully!',
+      message: type === "register" ? "Email verified successfully" : "Logged in successfully",
       data:{
         userId:result?.user.id,
         tokens:{
@@ -158,7 +181,7 @@ const verifyOtp = async (req: Request, res: Response, next: NextFunction) => {
  * @param {Response} res - The response object.
  * @param {NextFunction} next - The next middleware function.
  */
-const resendOtp = async (req: Request, res: Response, next: NextFunction) => {
+const resendOtp = async (req: CustomOtpRequest, res: Response, next: NextFunction) => {
   try {
     const { email } = req.body;
 
