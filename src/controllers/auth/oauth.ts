@@ -23,7 +23,28 @@ const googleOauthCallback = (req:Request , res:Response,next:NextFunction) => {
         res.redirect(`${process.env.FRONTEND_URL}/oauth?token=${user.tempOAuthToken}`);
 })(req, res, next);
 };
-  
+
+
+const startGithubOauth = () => {
+  passport.authenticate("github", {
+    scope: ["user:email"],
+  });
+};
+
+const githubOauthCallback = (req: Request, res: Response, next: NextFunction) => {
+  passport.authenticate("github", { session: false }, (err: Error, user: OauthUser) => {
+    if (err) {
+      next(new CustomError("An error occurred", 500, err.message));
+      return;
+    }
+    if (!user) {
+      next(new CustomError("User not found", 404));
+      return;
+    }
+    res.redirect(`${process.env.FRONTEND_URL}/oauth?token=${user.tempOAuthToken}`);
+  })(req, res, next);
+};
+
 
 const generateTokens =async (req:Request,res:Response,next:NextFunction) => {
     try {
@@ -85,4 +106,4 @@ const generateTokens =async (req:Request,res:Response,next:NextFunction) => {
       next(new CustomError("Something went wrong", 500));
     }
 }
-export {startGoogleOauth,googleOauthCallback,generateTokens};
+export {startGoogleOauth,googleOauthCallback,startGithubOauth, githubOauthCallback ,generateTokens};
