@@ -27,4 +27,4 @@ ENV NODE_ENV=production
 
 EXPOSE 3000
 
-CMD ["sh", "-c", "npx prisma migrate deploy && pm2 start dist/index.js --name api --watch --no-daemon"]
+CMD ["sh", "-c", "npx prisma migrate deploy && pm2 start dist/index.js --name api --no-daemon"]

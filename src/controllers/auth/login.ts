@@ -23,7 +23,7 @@ const loginUser = async (req: Request, res: Response, next: NextFunction) => {
             where: { email: email.toLowerCase() },
           });
 
-      if (!user) {
+      if (!user || !user.isVerified) {
         next(new CustomError("User not found", 401));
         return;
       }
@@ -46,7 +46,7 @@ const loginUser = async (req: Request, res: Response, next: NextFunction) => {
       const accessToken = jwt.sign(
         { userId: user.id,version:user.version },
         accessTokenKey,
-        { expiresIn: "1h" }
+        { expiresIn: "10h" }
       );
       const refreshToken = jwt.sign(
         { userId: user.id ,version:user.version},

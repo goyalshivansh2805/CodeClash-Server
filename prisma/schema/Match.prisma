@@ -1,0 +1,32 @@
+enum MatchMode {
+  SPEED
+  ACCURACY
+  STANDARD
+}
+
+enum MatchStatus {
+  WAITING
+  ONGOING
+  COMPLETED
+  ABORTED
+}
+
+model Match {
+  id          String    @id @default(uuid())
+  mode        MatchMode
+  status      MatchStatus @default(WAITING)
+
+  players     User[]    @relation("Matches")
+  matchQuestions MatchQuestion[]
+  submissions    Submission[]
+
+  startTime   DateTime?
+  endTime     DateTime?
+  maxDuration Int       @default(3600)
+
+  winnerId    String?
+  abortedById String?
+
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+}

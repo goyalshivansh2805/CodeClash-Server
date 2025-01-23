@@ -15,11 +15,11 @@ const isEmailExists = async(req:Request,res:Response,next:NextFunction) => {
         });
         let flow: number;
 
-        if (!user) {
+        if (!user || !user.isVerified) {
             flow = 1;
         } else if (user && !user.password) {
             flow = 2;
-        } else {
+        } else{
             flow = 3;
         }
 

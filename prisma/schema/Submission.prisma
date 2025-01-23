@@ -1,0 +1,29 @@
+enum SubmissionStatus {
+  PENDING
+  ACCEPTED
+  WRONG_ANSWER
+  TIME_LIMIT_EXCEEDED
+  MEMORY_LIMIT_EXCEEDED
+  RUNTIME_ERROR
+  COMPILATION_ERROR
+}
+
+model Submission {
+  id          String    @id @default(uuid())
+  userId      String
+  matchId     String
+  questionId  String
+  code        String    @db.Text
+  language    String
+  status      SubmissionStatus @default(PENDING)
+  executionTime Int?
+  memory      Int?
+  failedTestCase Int?
+
+  user        User      @relation(fields: [userId], references: [id])
+  match       Match     @relation(fields: [matchId], references: [id])
+  question    Question  @relation(fields: [questionId], references: [id])
+
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+} 
