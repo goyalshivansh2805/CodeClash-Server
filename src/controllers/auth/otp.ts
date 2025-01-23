@@ -8,8 +8,8 @@ import jwt from 'jsonwebtoken';
 const generateEmailContent = (otp: string, username: string, type: string) => {
   const isRegister = type === "register";
   const subjectText = isRegister
-    ? "Thank you for signing up for Classence! To verify your email address, please enter the One-Time Password (OTP) below:"
-    : "To log in to Classence, please enter the One-Time Password (OTP) below:";
+    ? "Thank you for signing up for CodeClash! To verify your email address, please enter the One-Time Password (OTP) below:"
+    : "To log in to CodeClash, please enter the One-Time Password (OTP) below:";
   const closingText = isRegister
     ? "If you did not request this verification, please disregard this email."
     : "If you did not attempt to log in, please disregard this email.";
@@ -17,11 +17,11 @@ const generateEmailContent = (otp: string, username: string, type: string) => {
   return `
       <body style="margin: 0; padding: 0; width: 100%; font-family: Arial, sans-serif;">
           <div style="max-width: 600px; width: 100%; margin: 0 auto; padding: 20px; border: 1px solid #e0e0e0; border-radius: 10px; background-color: #f9fafb; box-sizing: border-box;">
-              <img src="https://i.ibb.co/41hPJtW/logo.png" alt="Logo" style="width: 80%; max-width: 150px; display: block; margin: 0 auto;">
+              <img src="https://i.ibb.co/T1BNfgR/Untitled.jpg" alt="Logo" style="width: 80%; max-width: 150px; display: block; margin: 0 auto;">
               <p style="color: #555; font-size: 18px; line-height: 1.5; text-align: center;">&nbsp;Hello ${username},</p>
               <p style="color: #555; font-size: 16px; line-height: 1.6; text-align: center;">${subjectText}</p>
               <div style="text-align: center; margin: 20px 0;">
-                  <span style="font-size: 24px; font-weight: bold; color: #066769;">${otp}</span>
+                  <span style="font-size: 24px; font-weight: bold; color: #ad44d9;">${otp}</span>
               </div>
               <p style="color: #555; font-size: 16px; line-height: 1.6; text-align: center;">This OTP is valid for the next 10 minutes. Please keep it secure and do not share it with anyone.</p>
               <p style="color: #555; font-size: 16px; line-height: 1.6; text-align: center;">${closingText}</p>
@@ -29,7 +29,7 @@ const generateEmailContent = (otp: string, username: string, type: string) => {
               <hr style="border: 0; border-top: 1px solid #e0e0e0; margin: 30px 0;">
               <p style="font-size: 13px; color: #a1a1a1; text-align: center; line-height: 1.5;">
                   If you encounter any issues, please contact our support team at 
-                  <a href="mailto:codeclash.noreply@gmail.com" style="color: #066769; text-decoration: none;">classence.help@gmail.com</a>.
+                  <a href="mailto:codeclash.noreply@gmail.com" style="color: #066769; text-decoration: none;">codeclash.noreply@gmail.com</a>.
               </p>
           </div>
       </body>
@@ -147,7 +147,7 @@ const verifyOtp = async (req: CustomOtpRequest, res: Response, next: NextFunctio
       const accessToken = jwt.sign(
         { userId: user.id,version:user.version },
         accessTokenKey,
-        { expiresIn: "1h" }
+        { expiresIn: "10h" }
       );
       const refreshToken = jwt.sign(
         { userId: user.id ,version:user.version},
