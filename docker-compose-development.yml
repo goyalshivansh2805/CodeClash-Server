@@ -13,6 +13,8 @@ services:
     depends_on:
       db:
         condition: service_healthy
+      redis:
+        condition: service_healthy
     volumes:
       - .:/app
       - /app/node_modules
@@ -47,6 +49,28 @@ services:
       - db
     volumes:
       - ./servers.json:/pgadmin4/servers.json
-
+  redis:
+    image: redis:latest
+    container_name: codeclash-server-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+  redis-commander:
+    image: rediscommander/redis-commander:latest
+    container_name: codeclash-server-redis-commander
+    ports:
+      - "8081:8081"
+    environment:
+      - REDIS_HOSTS=local:redis:6379
+    depends_on:
+      redis:
+        condition: service_healthy
 volumes:
   postgres_data:
+  redis_data:

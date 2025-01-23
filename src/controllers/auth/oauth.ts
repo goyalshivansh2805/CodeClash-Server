@@ -12,7 +12,7 @@ const startGoogleOauth = (req:Request , res:Response,next:NextFunction) => {
 
 const googleOauthCallback = (req:Request , res:Response,next:NextFunction) => {
     passport.authenticate("google", { session: false }, (err:Error, user:OauthUser) => {
-        if (err) {
+        if (err) {``
           next(new CustomError("An error occurred",500,err.message));
           return;
         } 
@@ -20,7 +20,7 @@ const googleOauthCallback = (req:Request , res:Response,next:NextFunction) => {
           next(new CustomError("User not found",404));
           return;
         }
-        res.redirect(`${process.env.FRONTEND_URL}/oauth?token=${user.tempOAuthToken}`);
+        res.redirect(`${process.env.FRONTEND_URL}/oauth/callback?token=${user.tempOAuthToken}`);
 })(req, res, next);
 };
 
@@ -41,7 +41,7 @@ const githubOauthCallback = (req: Request, res: Response, next: NextFunction) =>
       next(new CustomError("User not found", 404));
       return;
     }
-    res.redirect(`${process.env.FRONTEND_URL}/oauth?token=${user.tempOAuthToken}`);
+    res.redirect(`${process.env.FRONTEND_URL}/oauth/callback?token=${user.tempOAuthToken}`);
   })(req, res, next);
 };
 
