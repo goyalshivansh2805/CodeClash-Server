@@ -28,5 +28,11 @@ model User {
   losses         Int?  @default(0)
   matchesPlayed  Int?  @default(0)
   matches Match[] @relation("Matches")
-  submissions Submission[]
+  
+
+  createdQuestions Question[]        // opposite of Question.creator
+  createdContests  Contest[]    @relation("CreatedContests")        // opposite of Contest.creator
+  contestParticipations ContestParticipation[] // opposite of ContestParticipation.user
+  submissions    Submission[]
+  contestLeaderboardEntries ContestLeaderboard[] @relation("ContestLeaderboardEntries")
 }

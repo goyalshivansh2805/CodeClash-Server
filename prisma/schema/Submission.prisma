@@ -11,7 +11,8 @@ enum SubmissionStatus {
 model Submission {
   id          String    @id @default(uuid())
   userId      String
-  matchId     String
+  matchId     String?
+  contestId   String?
   questionId  String
   code        String    @db.Text
   language    String
@@ -21,7 +22,8 @@ model Submission {
   failedTestCase Int?
 
   user        User      @relation(fields: [userId], references: [id])
-  match       Match     @relation(fields: [matchId], references: [id])
+  match       Match?    @relation(fields: [matchId], references: [id])
+  contest     Contest?  @relation(fields: [contestId], references: [id])
   question    Question  @relation(fields: [questionId], references: [id])
 
   createdAt   DateTime  @default(now())

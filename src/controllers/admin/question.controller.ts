@@ -61,6 +61,9 @@ export const createQuestion = async (
         rating,
         timeLimit: timeLimit || 2000,
         memoryLimit: memoryLimit || 256,
+        creator: {
+          connect: { id: userId }
+        },
         testCases: {
           create: testCases.map(tc => ({
             input: tc.input,

@@ -13,13 +13,17 @@ model Question {
   constraints String    @db.Text
   difficulty  Difficulty
   rating      Int
+  score       Int       @default(100)
   timeLimit   Int       @default(2000)
   memoryLimit Int       @default(256)
 
   testCases      TestCase[]
   matchQuestions MatchQuestion[]
   submissions    Submission[]
-
+  contests       Contest[]  
+  isAddedByAdmin Boolean   @default(false)
+  creator        User      @relation(fields: [creatorId], references: [id])
+  creatorId      String
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
 }
