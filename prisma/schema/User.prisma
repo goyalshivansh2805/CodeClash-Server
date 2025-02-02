@@ -21,6 +21,7 @@ model User {
   githubId       String?
   tempOAuthToken String?
   isAdmin        Boolean   @default(false)
+  isNotifcationEnabled Boolean @default(true)
 
   rating         Int?  @default(800)
   skillLevel  Skill?

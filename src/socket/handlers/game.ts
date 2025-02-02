@@ -11,7 +11,7 @@ export const handleGameStart = async (io: Server, socket: Socket, matchId: strin
   try {
     const match = await prisma.match.findUnique({
       where: { id: matchId },
-      include: { players: true }
+      include: { players: true, matchQuestions: true }
     });
 
     if (!match) {
@@ -31,19 +31,11 @@ export const handleGameStart = async (io: Server, socket: Socket, matchId: strin
     }
     // Initialize game state in Redis
     await initializeGameState(matchId, match.players.map(p => p.id));
-
-    // Get problems
-    const problems = await getMatchProblems();
-    await prisma.matchQuestion.createMany({
-      data: problems.map(p => ({
-        matchId,
-        questionId: p.id
-      }))
-    });
-    // Send all problems to both players
+    console.log(match)
+    const problemIds = match.matchQuestions.map(mq => mq.id);
     const roomId = `match_${matchId}`;
     io.to(roomId).emit('game_start', {
-      problems,
+      problems:problemIds,
       gameState: Array.from((await getGameState(matchId)).values())
     });
   } catch (error) {
@@ -51,70 +43,6 @@ export const handleGameStart = async (io: Server, socket: Socket, matchId: strin
     socket.emit('game_error', { message: 'Failed to start game' });
   }
 };
-
-async function getMatchProblems(): Promise<Problem[]> {
-  // Get three problems of increasing difficulty based on rating
-  const problems = await prisma.question.findMany({
-    where: {
-      AND: [
-        { rating: { gte: 800 } },   // Minimum rating
-        { rating: { lte: 2400 } },  // Maximum rating
-      ]
-    },
-    orderBy: {
-      rating: 'asc'  // Sort by rating
-    },
-    take: 3,
-    select: {
-      id: true,
-      title: true,
-      description: true,
-      rating: true,
-      testCases: {
-        where: { isHidden: false },  // Only get non-hidden test cases
-        select: {
-          input: true,
-          output: true,
-          isHidden: true
-        }
-      }
-    }
-  });
-
-  if (problems.length === 3) {
-    const [easy, medium, hard] = problems;
-    if (!(easy.rating < medium.rating && medium.rating < hard.rating)) {
-      return await prisma.question.findMany({
-        where: {
-          OR: [
-            { rating: { gte: 800, lte: 1200 } },   
-            { rating: { gte: 1300, lte: 1700 } },   
-            { rating: { gte: 1800, lte: 2400 } }  
-          ]
-        },
-        orderBy: {
-          rating: 'asc'
-        },
-        take: 3,
-        select: {
-          id: true,
-          title: true,
-          description: true,
-          rating: true,
-          testCases: {
-            select: {
-              input: true,
-              output: true,
-              isHidden: true
-            }
-          }
-        }
-      });
-    }
-  }
-
-  return problems as Problem[];
-}
 
 export async function handleGameEnd(io: Server, matchId: string, winnerId: string) {
   try {
@@ -196,15 +124,7 @@ export const handleGetGameState = async (io: Server, socket: Socket, matchId: st
         players: { some: { id: socket.data.userId } }
       },
       include: { 
-        matchQuestions: {
-          include: { 
-            question: {
-              include: {
-                testCases: true
-              }
-            }
-          }
-        }
+        matchQuestions: true
       }
     });
 
@@ -214,16 +134,9 @@ export const handleGetGameState = async (io: Server, socket: Socket, matchId: st
     }
 
     const gameState = await getGameState(matchId);
-    const problems = match.matchQuestions.map(mq => ({
-      id: mq.question.id,
-      title: mq.question.title,
-      description: mq.question.description,
-      rating: mq.question.rating,
-      testCases: mq.question.testCases.filter(tc => !tc.isHidden)  // Filter out hidden test cases
-    }));
 
     socket.emit('game_state', {
-      problems,
+      problems: match.matchQuestions,
       gameState: Array.from(gameState.values())
     });
   } catch (error) {

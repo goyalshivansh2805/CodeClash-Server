@@ -34,7 +34,7 @@ const refreshToken = async (req:Request,res:Response,next:NextFunction) => {
             next(new CustomError("User not found", 404));
             return;
         }
-        const accessToken = jwt.sign({ userId: decoded.userId }, process.env.ACCESS_TOKEN_SECRET!, { expiresIn: "1h" });
+        const accessToken = jwt.sign({ userId: decoded.userId,version:user.version }, process.env.ACCESS_TOKEN_SECRET!, { expiresIn: "10h" });
         res.status(200).json({
             success: true,
             message: "Access token generated successfully",
