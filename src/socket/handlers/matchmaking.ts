@@ -5,11 +5,18 @@ import { addToQueue, removeFromQueue, findMatch } from '../services/matchmakingS
 
 export const handleMatchmaking = async (io: Server, socket: Socket, data: { mode: MatchMode }) => {
   try {
+    if(typeof data === 'string'){
+      data=JSON.parse(data);
+    }
     const mode = data.mode; 
     const { userId, rating } = socket.data;
-
+    console.log(mode);
     if (!mode) {
       socket.emit('matchmaking_error', { message: 'Mode is required' });
+      return;
+    }
+    if(!Object.values(MatchMode).includes(mode)){
+      socket.emit('matchmaking_error', { message: 'Invalid mode' });
       return;
     }
 
@@ -22,10 +29,10 @@ export const handleMatchmaking = async (io: Server, socket: Socket, data: { mode
       }
     });
 
-    if (ongoingMatch) {
-      socket.emit('matchmaking_error', { message: 'You are already in an ongoing match' });
-      return;
-    }
+    // if (ongoingMatch) {
+    //   socket.emit('matchmaking_error', { message: 'You are already in an ongoing match' });
+    //   return;
+    // }
     socket.data.mode = mode;
     await removeFromQueue(userId, mode);
 

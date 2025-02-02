@@ -3,3 +3,5 @@ export {loginUser,registerUser,startGoogleOauth,googleOauthCallback , startGithu
 } from "./auth";
 
 export {updateSkillLevel} from "./user";
+
+export {getQuestion} from "./question/question";

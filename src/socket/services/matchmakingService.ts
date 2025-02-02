@@ -3,6 +3,8 @@ import { prisma } from '../../config';
 import { MatchMode } from '@prisma/client';
 import { redis } from '../../config/redis';
 import { startGameJoinTimer } from './gameService';
+import { Problem } from '../types/match';
+import { getMatchProblems } from './getProblems';
 
 const RATING_RANGE = 200;
 const QUEUE_CHECK_INTERVAL = 5000; // 5 seconds
@@ -75,6 +77,8 @@ export const findMatch = async (io: Server, socket: Socket) => {
       ]);
 
       try {
+        const problems: Problem[] = await getMatchProblems();
+        // console.log(problems);
         const match = await prisma.match.create({
           data: {
             mode: player.mode,
@@ -85,6 +89,11 @@ export const findMatch = async (io: Server, socket: Socket) => {
                 { id: player.userId },
                 { id: opponent.userId }
               ]
+            },
+            matchQuestions: {
+              connect: problems.map(p => ({
+                id: p.id
+              }))
             }
           }
         });
