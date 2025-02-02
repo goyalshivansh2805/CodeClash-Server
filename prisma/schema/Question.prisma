@@ -16,9 +16,9 @@ model Question {
   timeLimit   Int       @default(2000)
   memoryLimit Int       @default(256)
 
+  submissions Submission[]
+  matchs      Match[]
   testCases      TestCase[]
-  matchQuestions MatchQuestion[]
-  submissions    Submission[]
 
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
@@ -35,16 +35,3 @@ model TestCase {
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
 }
-
-model MatchQuestion {
-  id          String    @id @default(uuid())
-  matchId     String
-  questionId  String
-  match       Match     @relation(fields: [matchId], references: [id])
-  question    Question  @relation(fields: [questionId], references: [id])
-
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
-
-  @@unique([matchId, questionId])
-} 

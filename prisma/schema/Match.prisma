@@ -17,7 +17,8 @@ model Match {
   status      MatchStatus @default(WAITING)
 
   players     User[]    @relation("Matches")
-  matchQuestions MatchQuestion[]
+  matchQuestions Question[]
+  
   submissions    Submission[]
 
   startTime   DateTime?

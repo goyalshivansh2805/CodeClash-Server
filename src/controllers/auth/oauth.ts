@@ -20,7 +20,7 @@ const googleOauthCallback = (req:Request , res:Response,next:NextFunction) => {
           next(new CustomError("User not found",404));
           return;
         }
-        res.redirect(`${process.env.FRONTEND_URL}/oauth/callback?token=${user.tempOAuthToken}`);
+        res.redirect(`${process.env.FRONTEND_URL}/google?token=${user.tempOAuthToken}`);
 })(req, res, next);
 };
 
