@@ -40,7 +40,7 @@ export const resetPasswordSchema = baseSchema.pick({
 });
 
 export const changePasswordSchema = z.object({
-  oldPassword: baseSchema.shape.password.optional(),
+  oldPassword: baseSchema.shape.password,
   newPassword: baseSchema.shape.password,
 });
 
@@ -54,7 +54,6 @@ export const validateRequest =  <T>(schema: ZodSchema<T>) => {
       if (error instanceof z.ZodError) {
         const errorMessage = error.errors.map((e) => e.message).join(", ");
         next(new CustomError(errorMessage, 400)); 
-        next(new CustomError("Validation failed", 400));
       }
     }
   };
