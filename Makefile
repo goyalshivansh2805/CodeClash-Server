@@ -8,7 +8,6 @@ dev:
 prod:
 	sudo docker compose -f docker-compose.yml up -d --build
 	@echo "Production environment started in the background."
-	sudo docker compose -f docker-compose.yml logs -f app
 
 dev-rs:
 	sudo docker compose -f docker-compose-development.yml down

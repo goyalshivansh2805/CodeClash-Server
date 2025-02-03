@@ -1,1 +1,2 @@
-export { updateSkillLevel } from "./user";
+export { updateSkillLevel, changePassword, changeUsername, logOutOfAllDevices, deleteAccount, getUserProfile } from "./user";
+export { getSubmissions, getSubmissionById, getSubmissionByMatchId } from "./submission";
