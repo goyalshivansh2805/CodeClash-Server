@@ -30,4 +30,7 @@ model User {
   matchesPlayed  Int?  @default(0)
   matches Match[] @relation("Matches")
   submissions Submission[]
+
+  winStreak Int? @default(0)
+  maxWinStreak Int? @default(0)
 }

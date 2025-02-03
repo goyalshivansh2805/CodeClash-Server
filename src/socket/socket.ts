@@ -8,9 +8,9 @@ import {
   handleRejoinMatch,
   handleMatchStart,
   handleGameStart,
-  handleGetGameState,
   handlePlayerDisconnect
 } from './handlers';
+import { handleGetGameState } from './services/gameService';
 
 let io: SocketServer;
 
