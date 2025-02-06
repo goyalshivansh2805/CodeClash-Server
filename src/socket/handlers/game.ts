@@ -1,17 +1,16 @@
 import { Server, Socket } from 'socket.io';
 import { prisma ,redis} from '../../config';
-import { Problem, SubmissionResult } from '../types/match';
 import { 
   initializeGameState, 
   getGameState, 
-  updatePlayerState 
+  calculateRatingChange
 } from '../services/gameService';
 
 export const handleGameStart = async (io: Server, socket: Socket, matchId: string) => {
   try {
     const match = await prisma.match.findUnique({
       where: { id: matchId },
-      include: { players: true }
+      include: { players: true, matchQuestions: true }
     });
 
     if (!match) {
@@ -31,19 +30,11 @@ export const handleGameStart = async (io: Server, socket: Socket, matchId: strin
     }
     // Initialize game state in Redis
     await initializeGameState(matchId, match.players.map(p => p.id));
-
-    // Get problems
-    const problems = await getMatchProblems();
-    await prisma.matchQuestion.createMany({
-      data: problems.map(p => ({
-        matchId,
-        questionId: p.id
-      }))
-    });
-    // Send all problems to both players
+    console.log(match)
+    const problemIds = match.matchQuestions.map(mq => mq.id);
     const roomId = `match_${matchId}`;
     io.to(roomId).emit('game_start', {
-      problems,
+      problems:problemIds,
       gameState: Array.from((await getGameState(matchId)).values())
     });
   } catch (error) {
@@ -51,70 +42,6 @@ export const handleGameStart = async (io: Server, socket: Socket, matchId: strin
     socket.emit('game_error', { message: 'Failed to start game' });
   }
 };
-
-async function getMatchProblems(): Promise<Problem[]> {
-  // Get three problems of increasing difficulty based on rating
-  const problems = await prisma.question.findMany({
-    where: {
-      AND: [
-        { rating: { gte: 800 } },   // Minimum rating
-        { rating: { lte: 2400 } },  // Maximum rating
-      ]
-    },
-    orderBy: {
-      rating: 'asc'  // Sort by rating
-    },
-    take: 3,
-    select: {
-      id: true,
-      title: true,
-      description: true,
-      rating: true,
-      testCases: {
-        where: { isHidden: false },  // Only get non-hidden test cases
-        select: {
-          input: true,
-          output: true,
-          isHidden: true
-        }
-      }
-    }
-  });
-
-  if (problems.length === 3) {
-    const [easy, medium, hard] = problems;
-    if (!(easy.rating < medium.rating && medium.rating < hard.rating)) {
-      return await prisma.question.findMany({
-        where: {
-          OR: [
-            { rating: { gte: 800, lte: 1200 } },   
-            { rating: { gte: 1300, lte: 1700 } },   
-            { rating: { gte: 1800, lte: 2400 } }  
-          ]
-        },
-        orderBy: {
-          rating: 'asc'
-        },
-        take: 3,
-        select: {
-          id: true,
-          title: true,
-          description: true,
-          rating: true,
-          testCases: {
-            select: {
-              input: true,
-              output: true,
-              isHidden: true
-            }
-          }
-        }
-      });
-    }
-  }
-
-  return problems as Problem[];
-}
 
 export async function handleGameEnd(io: Server, matchId: string, winnerId: string) {
   try {
@@ -132,7 +59,9 @@ export async function handleGameEnd(io: Server, matchId: string, winnerId: strin
             rating: true,
             wins: true,
             losses: true,
-            matchesPlayed: true
+            matchesPlayed: true,
+            winStreak: true,
+            maxWinStreak: true
           }
         }
       }
@@ -151,7 +80,9 @@ export async function handleGameEnd(io: Server, matchId: string, winnerId: strin
         data: {
           rating: (winner.rating ?? 800) + ratingChange,
           wins: (winner.wins ?? 0) + 1,
-          matchesPlayed: (winner.matchesPlayed ?? 0) + 1
+          matchesPlayed: (winner.matchesPlayed ?? 0) + 1,
+          winStreak: (winner.winStreak ?? 0) + 1,
+          maxWinStreak: ((winner.winStreak ?? 0) + 1) > (winner.maxWinStreak ?? 0) ? ((winner.winStreak ?? 0) + 1) : (winner.maxWinStreak ?? 0)
         }
       }),
       prisma.user.update({
@@ -159,7 +90,9 @@ export async function handleGameEnd(io: Server, matchId: string, winnerId: strin
         data: {
           rating: (loser.rating ?? 800) - ratingChange,
           losses: (loser.losses ?? 0) + 1,
-          matchesPlayed: (loser.matchesPlayed ?? 0) + 1
+          matchesPlayed: (loser.matchesPlayed ?? 0) + 1,
+          winStreak:0,
+          maxWinStreak: (loser.winStreak ?? 0 ) > (loser.maxWinStreak ?? 0) ? (loser.winStreak ?? 0 ) : (loser.maxWinStreak ?? 0)
         }
       })
     ]);
@@ -181,56 +114,6 @@ export async function handleGameEnd(io: Server, matchId: string, winnerId: strin
   }
 }
 
-function calculateRatingChange(winnerRating: number, loserRating: number): number {
-  const K = 32;
-  const expectedScore = 1 / (1 + Math.pow(10, (loserRating - winnerRating) / 400));
-  return Math.round(K * (1 - expectedScore));
-}
-
-export const handleGetGameState = async (io: Server, socket: Socket, matchId: string) => {
-  try {
-    const match = await prisma.match.findFirst({
-      where: { 
-        id: matchId,
-        status: 'ONGOING',
-        players: { some: { id: socket.data.userId } }
-      },
-      include: { 
-        matchQuestions: {
-          include: { 
-            question: {
-              include: {
-                testCases: true
-              }
-            }
-          }
-        }
-      }
-    });
-
-    if (!match) {
-      socket.emit('game_error', { message: 'Match not found or ended' });
-      return;
-    }
-
-    const gameState = await getGameState(matchId);
-    const problems = match.matchQuestions.map(mq => ({
-      id: mq.question.id,
-      title: mq.question.title,
-      description: mq.question.description,
-      rating: mq.question.rating,
-      testCases: mq.question.testCases.filter(tc => !tc.isHidden)  // Filter out hidden test cases
-    }));
-
-    socket.emit('game_state', {
-      problems,
-      gameState: Array.from(gameState.values())
-    });
-  } catch (error) {
-    console.error('Get game state error:', error);
-    socket.emit('game_error', { message: 'Failed to get game state' });
-  }
-};
 
 export const handlePlayerDisconnect = async (io: Server, socket: Socket) => {
   try {

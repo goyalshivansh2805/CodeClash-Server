@@ -1,4 +1,4 @@
-import { Server } from 'socket.io';
+import { Server, Socket } from 'socket.io';
 import { prisma } from '../../config';
 import { redis } from '../../config/redis';
 import { Problem, PlayerState } from '../types/match';
@@ -114,3 +114,39 @@ export const updatePlayerState = async (
   await redis.hSet(gameStateKey, userId, JSON.stringify(newState));
   return newState;
 }; 
+
+export function calculateRatingChange(winnerRating: number, loserRating: number): number {
+  const K = 32;
+  const expectedScore = 1 / (1 + Math.pow(10, (loserRating - winnerRating) / 400));
+  return Math.round(K * (1 - expectedScore));
+}
+
+export const handleGetGameState = async (io: Server, socket: Socket, matchId: string) => {
+  try {
+    const match = await prisma.match.findFirst({
+      where: { 
+        id: matchId,
+        status: 'ONGOING',
+        players: { some: { id: socket.data.userId } }
+      },
+      include: { 
+        matchQuestions: true
+      }
+    });
+
+    if (!match) {
+      socket.emit('game_error', { message: 'Match not found or ended' });
+      return;
+    }
+
+    const gameState = await getGameState(matchId);
+
+    socket.emit('game_state', {
+      problems: match.matchQuestions,
+      gameState: Array.from(gameState.values())
+    });
+  } catch (error) {
+    console.error('Get game state error:', error);
+    socket.emit('game_error', { message: 'Failed to get game state' });
+  }
+};

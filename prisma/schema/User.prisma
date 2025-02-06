@@ -21,6 +21,7 @@ model User {
   githubId       String?
   tempOAuthToken String?
   isAdmin        Boolean   @default(false)
+  isNotifcationEnabled Boolean @default(true)
 
   rating         Int?  @default(800)
   skillLevel  Skill?
@@ -28,6 +29,10 @@ model User {
   losses         Int?  @default(0)
   matchesPlayed  Int?  @default(0)
   matches Match[] @relation("Matches")
+  submissions Submission[]
+
+  winStreak Int? @default(0)
+  maxWinStreak Int? @default(0)
   
 
   createdQuestions Question[]        // opposite of Question.creator

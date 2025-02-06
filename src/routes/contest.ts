@@ -1,21 +1,34 @@
-// Contest Related Endpoints
+import { Router } from 'express';
 
-// POST    /api/contests              // Create a new contest
-// GET     /api/contests              // List all contests
-//                                    // Start a contest
-//                                    // End a contest
-// GET     /api/contests/:id          // Get contest details
-// PUT     /api/contests/:id          // Update contest
-// DELETE  /api/contests/:id          // Delete contest
-// POST    /api/contests/:id/join     // Join a contest
-// GET     /api/contests/:id/leaderboard  // Get contest leaderboard
+import {
+  createContest,
+  updateContest,
+  deleteContest,
+  getContestDetails,
+  addQuestionToContest,
+  updateQuestionInContest,
+  deleteQuestionFromContest,
+  updateContestLeaderboard,
+  getContestLeaderboard,
+  getUserContestRank
+} from '../controllers/contest';
 
-// participated created upcoming pastcontests
+const router = Router();
 
-// Problem Related Endpoints
+// Contest CRUD routes
+router.post('/', authenticateUser, createContest);
+router.get('/:contestId', authenticateUser, getContestDetails);
+router.put('/:contestId', authenticateUser, updateContest);
+router.delete('/:contestId', authenticateUser, deleteContest);
 
-// POST    /api/contests/:id/problems     // Add problem to contest
-// GET     /api/contests/:id/problems     // List problems in contest
-// GET     /api/problems/:id              // Get problem details
-// PUT     /api/problems/:id              // Update problem
-// DELETE  /api/problems/:id              // Delete problem
+// Contest question management routes
+router.post('/:contestId/questions', authenticateUser, addQuestionToContest);
+router.put('/:contestId/questions/:questionId', authenticateUser, updateQuestionInContest);
+router.delete('/:contestId/questions/:questionId', authenticateUser, deleteQuestionFromContest);
+
+// Contest leaderboard routes
+router.post('/:contestId/leaderboard', authenticateUser, updateContestLeaderboard);
+router.get('/:contestId/leaderboard', authenticateUser, getContestLeaderboard);
+router.get('/:contestId/rank', authenticateUser, getUserContestRank);
+
+export default router;

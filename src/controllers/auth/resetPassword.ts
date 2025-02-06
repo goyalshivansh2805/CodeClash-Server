@@ -56,7 +56,7 @@ const requestPasswordReset = async (req: Request, res: Response, next: NextFunct
           We received a request to reset your password. Click the button below to proceed:
         </p>
         <div style="text-align: center; margin: 30px 0;">
-          <a href="${resetUrl}" style="background-color: #066769; color: white; padding: 12px 30px; text-decoration: none; border-radius: 6px; font-size: 16px;">
+          <a href="${resetUrl}" style="background-color: #ad44d9; color: white; padding: 12px 30px; text-decoration: none; border-radius: 6px; font-size: 16px;">
             Reset Password
           </a>
         </div>
@@ -71,8 +71,8 @@ const requestPasswordReset = async (req: Request, res: Response, next: NextFunct
         <p style="font-size: 13px; color: #a1a1a1; text-align: center; margin: 20px;">
           If you're having trouble clicking the button, copy and paste the URL below into your web browser:
         </p>
-        <p style="font-size: 13px; color: #066769; word-break: break-all; text-align: center; margin: 0;">
-          <a href="${resetUrl}" style="color: #066769; text-decoration: none;">${resetUrl}</a>
+        <p style="font-size: 13px; color: #ad44d9; word-break: break-all; text-align: center; margin: 0;">
+          <a href="${resetUrl}" style="color: #ad44d9; text-decoration: none;">${resetUrl}</a>
         </p>
       </div>
     </body>

@@ -6,6 +6,7 @@ import { getGameState } from '../services/gameService';
 
 export const handleMatchStart = async (io: Server, socket: Socket, matchId: string) => {
   try {
+    // console.log(matchId);
     const match = await prisma.match.findUnique({
       where: { id: matchId, status: 'ONGOING' },
       include: {
@@ -18,21 +19,23 @@ export const handleMatchStart = async (io: Server, socket: Socket, matchId: stri
         }
       }
     });
-
+    // console.log(match?.players);
+    if(!match?.players.some(p => p.id === socket.data.userId)){
+      socket.emit('match_error', { message: 'You are not in this match' });
+      return;
+    }
     if (!match) {
       socket.emit('match_error', { message: 'Match not found' });
       return;
     }
 
-    // Join match room
     const roomId = `match_${matchId}`;
     socket.join(roomId);
 
-    // Mark player as joined
     await markPlayerJoined(matchId, socket.data.userId);
 
-    // Send initial match state
     socket.emit('match_state', {
+      status:true,
       matchId: match.id,
       mode: match.mode,
       players: match.players,
@@ -64,15 +67,7 @@ export const handleRejoinMatch = async (io: Server, socket: Socket, matchId: str
             rating: true
           }
         },
-        matchQuestions: {
-          include: {
-            question: {
-              include: {
-                testCases: true
-              }
-            }
-          }
-        }
+        matchQuestions: true
       }
     });
 
@@ -103,11 +98,7 @@ export const handleRejoinMatch = async (io: Server, socket: Socket, matchId: str
     // Send game state with problems
     const gameState = await getGameState(matchId);
     const problems = match.matchQuestions.map(mq => ({
-      id: mq.question.id,
-      title: mq.question.title,
-      description: mq.question.description,
-      rating: mq.question.rating,
-      testCases: mq.question.testCases.filter(tc => !tc.isHidden)
+      id: mq.id,
     }));
 
     socket.emit('game_state', {

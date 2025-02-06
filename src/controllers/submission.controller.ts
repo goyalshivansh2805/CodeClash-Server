@@ -8,6 +8,13 @@ import { updatePlayerState } from '../socket/services/gameService';
 import { getGameState } from '../socket/services/gameService';
 import { handleGameEnd } from '../socket/handlers/game';
 
+enum ALLOWED_LANGUAGES {
+  'python' = 'python',
+  'javascript' = 'javascript',
+  'java' = 'java',
+  'c' = 'c',
+  'cpp' = 'cpp'
+}
 
 export const handleRunCode = async (req: CustomRequest, res: Response, next: NextFunction) => {
   try {
@@ -18,6 +25,9 @@ export const handleRunCode = async (req: CustomRequest, res: Response, next: Nex
     }
     if(!code || !language || !input){
       throw new CustomError('Invalid request body', 400);
+    }
+    if(!ALLOWED_LANGUAGES[language as keyof typeof ALLOWED_LANGUAGES]){
+      throw new CustomError('Invalid language', 400);
     }
     const matchId = req.params.matchId;
 

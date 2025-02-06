@@ -29,7 +29,7 @@ const generateEmailContent = (otp: string, username: string, type: string) => {
               <hr style="border: 0; border-top: 1px solid #e0e0e0; margin: 30px 0;">
               <p style="font-size: 13px; color: #a1a1a1; text-align: center; line-height: 1.5;">
                   If you encounter any issues, please contact our support team at 
-                  <a href="mailto:codeclash.noreply@gmail.com" style="color: #066769; text-decoration: none;">codeclash.noreply@gmail.com</a>.
+                  <a href="mailto:codeclash.noreply@gmail.com" style="color: #ad44d9; text-decoration: none;">codeclash.noreply@gmail.com</a>.
               </p>
           </div>
       </body>
