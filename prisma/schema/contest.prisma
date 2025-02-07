@@ -1,0 +1,58 @@
+enum ContestStatus {
+  UPCOMING
+  ONGOING
+  ENDED
+}
+
+model Contest {
+  id            String     @id @default(uuid())
+  title         String
+  description   String
+  startTime     DateTime
+  endTime       DateTime
+  isPublic      Boolean    @default(true)
+  status        ContestStatus @default(UPCOMING)
+  createdAt     DateTime   @default(now())
+  updatedAt     DateTime   @updatedAt
+  
+  // Relations
+  creator       User       @relation("CreatedContests", fields: [creatorId], references: [id])
+  creatorId     String
+  questions     Question[]
+  participants  ContestParticipation[]
+  submissions   Submission[]
+  leaderboard   ContestLeaderboard[]
+}
+
+model ContestParticipation {
+  id            String     @id @default(uuid())
+  joinedAt      DateTime   @default(now())
+  score         Int        @default(0)
+  rank          Int?
+  
+  // Relations
+  user          User       @relation(fields: [userId], references: [id])
+  userId        String
+  contest       Contest    @relation(fields: [contestId], references: [id])
+  contestId     String
+
+  @@unique([userId, contestId])
+}
+
+model ContestLeaderboard {
+  id            String     @id @default(uuid())
+  contestId     String
+  userId        String
+  score         Int       @default(0)
+  problemsSolved Int      @default(0)
+  lastSubmissionTime DateTime?
+  rank          Int?
+  updatedAt     DateTime  @updatedAt
+
+  // Relations
+  contest       Contest    @relation(fields: [contestId], references: [id])
+  user          User       @relation("ContestLeaderboardEntries", fields: [userId], references: [id])
+
+  @@unique([contestId, userId])
+  @@index([contestId, score, lastSubmissionTime])
+}
