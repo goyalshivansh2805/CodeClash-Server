@@ -1,5 +1,5 @@
 import { Router } from "express";
-import {healthRoute,authRoute,userRoute,matchRoute,adminRoute,questionRoute} from "./";
+import {healthRoute,authRoute,userRoute,matchRoute,adminRoute, contestRoute,questionRoute} from "./";
 import { verifyToken } from "../middlewares";
 
 const router = Router();
@@ -10,4 +10,5 @@ router.use("/user", verifyToken, userRoute);
 router.use("/match", verifyToken, matchRoute);
 router.use("/admin", verifyToken, adminRoute);
 router.use("/question", verifyToken, questionRoute);
+router.use("/contest", verifyToken, contestRoute);
 export default router;
