@@ -18,11 +18,11 @@ interface AddQuestionBody {
   contestId: string;
 }
 
-export const addQuestionToContest = async (
+export const createQuestion = async (
   req: CustomRequest,
   res: Response,
   next: NextFunction
-) => {
+): Promise<void> => {
   try {
     const userId = req.user?.id;
     if (!userId) {
@@ -43,6 +43,12 @@ export const addQuestionToContest = async (
       testCases,
       contestId
     } = req.body as AddQuestionBody;
+
+
+    if (!contestId) {
+      throw new CustomError('Contest ID is missing', 400);
+    }
+
 
     // check if contest exists and user is the creator
     const contest = await prisma.contest.findFirst({
@@ -102,7 +108,7 @@ export const addQuestionToContest = async (
           },
           // connect the question to the contest
           contests: {
-            connect: { id: contestId }
+            connect: [{ id: contestId }]
           }
         },
         include: {
@@ -113,18 +119,19 @@ export const addQuestionToContest = async (
       return question;
     });
 
-    return res.status(201).json({
+     res.status(201).json({
       message: 'Question added to contest successfully',
       data: {
         questionId: result.id,
         title: result.title,
         difficulty: result.difficulty,
         rating: result.rating,
+        score: result.score,
         testCasesCount: result.testCases.length
       }
     });
 
   } catch (error) {
-    next(error);
+    return next(error);
   }
 };

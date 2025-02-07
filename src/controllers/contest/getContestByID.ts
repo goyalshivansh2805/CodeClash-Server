@@ -7,7 +7,7 @@ export const getContestDetails = async (
   req: CustomRequest,
   res: Response,
   next: NextFunction
-) => {
+): Promise<void> => {
   try {
     const userId = req.user?.id;
     if (!userId) {
@@ -126,12 +126,12 @@ export const getContestDetails = async (
               }
             }
           });
-          return res.json({
+           res.json({
             message: 'Contest details retrieved successfully',
             contest: { ...baseResponse, questions: questions?.questions }
           });
         }
-        return res.json({
+         res.json({
           message: 'Contest details retrieved successfully',
           contest: baseResponse
         });
@@ -178,7 +178,7 @@ export const getContestDetails = async (
             }), {})
         }));
 
-        return res.json({
+         res.json({
           message: 'Contest details retrieved successfully',
           contest: { ...baseResponse, questions: questionsWithStats }
         });
@@ -227,7 +227,7 @@ export const getContestDetails = async (
           }
         });
 
-        return res.json({
+         res.json({
           message: 'Contest details retrieved successfully',
           contest: {
             ...baseResponse,
@@ -238,13 +238,13 @@ export const getContestDetails = async (
       }
 
       default:
-        return res.json({
+         res.json({
           message: 'Contest details retrieved successfully',
           contest: baseResponse
         });
     }
 
   } catch (error) {
-    next(error);
+    return next(error);
   }
 };

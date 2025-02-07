@@ -8,14 +8,14 @@ interface CreateContestBody {
   startTime: string;
   endTime: string;
   isPublic?: boolean;
-  questionIds: string[];
+  questionIds?: string[];
 }
 
 export const createContest = async (
   req: CustomRequest,
   res: Response,
   next: NextFunction
-) => {
+): Promise<void> => {
   try {
     const userId = req.user?.id;
     if (!userId) {
@@ -28,10 +28,10 @@ export const createContest = async (
       startTime,
       endTime,
       isPublic = true,
-      questionIds
+      questionIds = []
     } = req.body as CreateContestBody;
 
-    if (!title || !description || !startTime || !endTime || !questionIds?.length) {
+    if (!title || !description || !startTime || !endTime) {
       throw new CustomError('Missing required fields', 400);
     }
 
@@ -87,12 +87,12 @@ export const createContest = async (
       }
     });
 
-    return res.status(201).json({
+    res.status(201).json({
       message: 'Contest created successfully',
       contest
     });
 
   } catch (error) {
-    next(error);
+    return next(error);
   }
 };

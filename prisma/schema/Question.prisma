@@ -20,8 +20,6 @@ model Question {
   submissions Submission[]
   matchs      Match[]
   testCases      TestCase[]
-  matchQuestions MatchQuestion[]
-  submissions    Submission[]
   contests       Contest[]  
   isAddedByAdmin Boolean   @default(false)
   creator        User      @relation(fields: [creatorId], references: [id])

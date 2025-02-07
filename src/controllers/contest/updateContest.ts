@@ -15,7 +15,7 @@ export const updateContest = async (
   req: CustomRequest,
   res: Response,
   next: NextFunction
-) => {
+): Promise<void> => {
   try {
     const userId = req.user?.id;
     if (!userId) {
@@ -126,12 +126,12 @@ export const updateContest = async (
       }
     });
 
-    return res.json({
+     res.json({
       message: 'Contest updated successfully',
       contest: updatedContest
     });
 
   } catch (error) {
-    next(error);
+    return next(error);
   }
 };

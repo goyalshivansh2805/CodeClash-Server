@@ -6,7 +6,7 @@ export const deleteContest = async (
   req: CustomRequest,
   res: Response,
   next: NextFunction
-) => {
+): Promise<void> => {
   try {
     const userId = req.user?.id;
     if (!userId) {
@@ -68,11 +68,11 @@ export const deleteContest = async (
       }
     });
 
-    return res.json({
+     res.json({
       message: 'Contest deleted successfully'
     });
 
   } catch (error) {
-    next(error);
+    return next(error);
   }
 };

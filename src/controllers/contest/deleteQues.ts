@@ -2,18 +2,20 @@ import { NextFunction, Response } from 'express';
 import { prisma } from '../../config';
 import { CustomError, CustomRequest } from '../../types';
 
-export const deleteQuestionFromContest = async (
+export const deleteQuestion = async (
   req: CustomRequest,
   res: Response,
   next: NextFunction
-) => {
+): Promise<void> => {
   try {
     const userId = req.user?.id;
     if (!userId) {
       throw new CustomError('Unauthorized', 401);
     }
 
-    const { contestId, questionId } = req.params;
+    // const { contestId, questionId } = req.params;
+    const { contestId, questionId } = req.body; 
+
 
     if (!contestId || !questionId) {
       throw new CustomError('Contest ID and Question ID are required', 400);
@@ -58,11 +60,6 @@ export const deleteQuestionFromContest = async (
       throw new CustomError('Cannot delete question with existing submissions', 400);
     }
 
-    // check if this is the last question in the contest
-    if (contest.questions.length === 1) {
-      throw new CustomError('Cannot delete the last question from the contest', 400);
-    }
-
     // delete question in a transaction
     await prisma.$transaction(async (prisma) => {
       // first disconnect the question from the contest
@@ -94,7 +91,7 @@ export const deleteQuestionFromContest = async (
       });
     });
 
-    return res.json({
+     res.json({
       message: 'Question deleted successfully from contest',
       data: {
         contestId,
@@ -104,6 +101,6 @@ export const deleteQuestionFromContest = async (
     });
 
   } catch (error) {
-    next(error);
+    return next(error);
   }
 };
