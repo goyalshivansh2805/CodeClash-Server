@@ -2,6 +2,7 @@
 export {createContest} from "./createContest";
 export {createQuestion} from "./createQues";
 export {deleteContest} from "./deleteContest";
+export {joinContest} from "./joinContest"
 export {deleteQuestion} from "./deleteQues";
 export {getContestDetails} from "./getContestByID";
 
