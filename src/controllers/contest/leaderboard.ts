@@ -27,79 +27,88 @@ export const updateContestLeaderboard = async (
       throw new CustomError('Contest ID is required', 400);
     }
 
+    // Check if contest exists and is active
     const contest = await prisma.contest.findUnique({
-      where: { id: contestId },
-      include: {
-        questions: true,
-        submissions: {
-          where: {
-            status: 'ACCEPTED'
-          },
-          orderBy: {
-            createdAt: 'asc'
-          }
-        },
-        participants: true
+      where: { 
+        id: contestId,
+        endTime: { gte: new Date() }
       }
     });
 
     if (!contest) {
-      throw new CustomError('Contest not found', 404);
+      throw new CustomError('Contest not found or ended', 404);
     }
 
-    // Group submissions by user
-    const userSubmissions = new Map();
-    contest.submissions.forEach(submission => {
-      if (!userSubmissions.has(submission.userId)) {
-        userSubmissions.set(submission.userId, new Set());
+    // Get all accepted submissions grouped by user
+    const submissions = await prisma.submission.groupBy({
+      by: ['userId', 'questionId'],
+      where: {
+        contestId,
+        status: 'ACCEPTED'
+      },
+      _min: {
+        createdAt: true
       }
-      userSubmissions.get(submission.userId).add(submission.questionId);
     });
 
-    // Calculate scores and create leaderboard entries
-    const leaderboardEntries = await Promise.all(
-      Array.from(userSubmissions.entries()).map(async ([userId, solvedQuestions]) => {
-        const userSubmissions = contest.submissions.filter(s => s.userId === userId);
-        const lastSubmission = userSubmissions[userSubmissions.length - 1];
+    // Calculate scores and update leaderboard
+    const userScores = new Map();
+    for (const submission of submissions) {
+      const { userId, questionId } = submission;
+      if (!userScores.has(userId)) {
+        userScores.set(userId, {
+          problemsSolved: 0,
+          totalScore: 0,
+          lastSubmissionTime: null
+        });
+      }
+      
+      const question = await prisma.question.findUnique({
+        where: { id: questionId },
+        select: { score: true }
+      });
 
-        // Calculate total score based on question scores
-        const score = Array.from(solvedQuestions).reduce((total: number, questionId) => {
-          const question = contest.questions.find(q => q.id === questionId);
-          return total + (question?.score || 0);
-        }, 0);
+      const userScore = userScores.get(userId);
+      userScore.problemsSolved++;
+      userScore.totalScore += question?.score || 0;
+      userScore.lastSubmissionTime = submission._min.createdAt;
+    }
 
-        return prisma.contestLeaderboard.upsert({
+    // Bulk update leaderboard
+    await Promise.all(
+      Array.from(userScores.entries()).map(([userId, data]) =>
+        prisma.contestLeaderboard.upsert({
           where: {
             contestId_userId: {
-              contestId: contest.id,
-              userId: userId
+              contestId,
+              userId
             }
           },
           create: {
-            contestId: contest.id,
-            userId: userId,
-            score: score,
-            problemsSolved: solvedQuestions.size,
-            lastSubmissionTime: lastSubmission?.createdAt
+            contestId,
+            userId,
+            score: data.totalScore,
+            problemsSolved: data.problemsSolved,
+            lastSubmissionTime: data.lastSubmissionTime
           },
           update: {
-            score: score,
-            problemsSolved: solvedQuestions.size,
-            lastSubmissionTime: lastSubmission?.createdAt
+            score: data.totalScore,
+            problemsSolved: data.problemsSolved,
+            lastSubmissionTime: data.lastSubmissionTime
           }
-        });
-      })
+        })
+      )
     );
 
     // Update ranks
     await updateLeaderboardRanks(contestId);
 
-     res.json({
+    res.json({
       message: 'Leaderboard updated successfully',
-      entriesUpdated: leaderboardEntries.length
+      updatedUsers: userScores.size
     });
   } catch (error) {
-    return next(error);
+    next(error);
   }
 };
 
@@ -123,31 +132,32 @@ export const getContestLeaderboard = async (
       throw new CustomError('Contest not found', 404);
     }
 
-    const leaderboard = await prisma.contestLeaderboard.findMany({
-      where: { contestId },
-      orderBy: [
-        { score: 'desc' },
-        { problemsSolved: 'desc' },
-        { lastSubmissionTime: 'asc' }
-      ],
-      skip,
-      take: limit,
-      include: {
-        user: {
-          select: {
-            username: true,
-            rating: true,
-            profileImage: true
+    const [leaderboard, total] = await Promise.all([
+      prisma.contestLeaderboard.findMany({
+        where: { contestId },
+        orderBy: [
+          { score: 'desc' },
+          { problemsSolved: 'desc' },
+          { lastSubmissionTime: 'asc' }
+        ],
+        skip,
+        take: limit,
+        include: {
+          user: {
+            select: {
+              username: true,
+              rating: true,
+              profileImage: true
+            }
           }
         }
-      }
-    });
+      }),
+      prisma.contestLeaderboard.count({
+        where: { contestId }
+      })
+    ]);
 
-    const total = await prisma.contestLeaderboard.count({
-      where: { contestId }
-    });
-
-     res.json({
+    res.json({
       leaderboard,
       pagination: {
         total,
@@ -157,12 +167,12 @@ export const getContestLeaderboard = async (
       }
     });
   } catch (error) {
-    return next(error);
+    next(error);
   }
 };
 
 // Helper function to update ranks
-async function updateLeaderboardRanks(contestId: string) {
+async function updateLeaderboardRanks(contestId: string): Promise<void> {
   const leaderboard = await prisma.contestLeaderboard.findMany({
     where: { contestId },
     orderBy: [
@@ -172,8 +182,7 @@ async function updateLeaderboardRanks(contestId: string) {
     ]
   });
 
-  // Update ranks
-  await Promise.all(
+  await prisma.$transaction(
     leaderboard.map((entry, index) =>
       prisma.contestLeaderboard.update({
         where: { id: entry.id },

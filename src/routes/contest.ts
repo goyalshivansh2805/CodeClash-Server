@@ -5,6 +5,7 @@ import {
   createContest,
   updateContest,
   deleteContest,
+  joinContest,
   getContestDetails,
   createQuestion,
   updateQuestion,
@@ -32,5 +33,8 @@ router.delete('/:contestId', verifyToken, deleteContest);
 router.post('/:contestId/leaderboard', verifyToken, updateContestLeaderboard);
 router.get('/:contestId/leaderboard', verifyToken, getContestLeaderboard);  
 router.get('/:contestId/rank', verifyToken, getUserContestRank);
+
+// Contest participation route
+router.post('/:contestId/join', verifyToken, joinContest);
 
 export default router;
