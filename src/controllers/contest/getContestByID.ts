@@ -36,6 +36,10 @@ export const getContestDetails = async (
         status: true,
         createdAt: true,
         creatorId: true,
+        organizationName: true,
+        rules: true,
+        prizes: true,
+        score: true,
         creator: {
           select: {
             id: true,
@@ -99,6 +103,10 @@ export const getContestDetails = async (
       isPublic: contest.isPublic,
       status,
       createdAt: contest.createdAt,
+      organizationName: contest.organizationName,
+      rules: contest.rules,
+      prizes: contest.prizes,
+      score: contest.score,
       creator: contest.creator,
       isRegistered: contest.participants.length > 0,
       isCreator: contest.creatorId === userId,
