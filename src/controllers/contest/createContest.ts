@@ -9,6 +9,10 @@ interface CreateContestBody {
   endTime: string;
   isPublic?: boolean;
   questionIds?: string[];
+  organizationName?: string;
+  rules?: string;
+  prizes?: string;
+  score?: number;
 }
 
 export const createContest = async (
@@ -28,7 +32,11 @@ export const createContest = async (
       startTime,
       endTime,
       isPublic = true,
-      questionIds = []
+      questionIds = [],
+      organizationName,
+      rules,
+      prizes,
+      score
     } = req.body as CreateContestBody;
 
     if (!title || !description || !startTime || !endTime) {
@@ -70,6 +78,10 @@ export const createContest = async (
         endTime: endDateTime,
         isPublic,
         creatorId: userId,
+        organizationName,
+        rules,
+        prizes,
+        score: score || 0,
         questions: {
           connect: questionIds.map(id => ({ id }))
         }

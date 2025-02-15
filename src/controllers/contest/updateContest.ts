@@ -9,6 +9,10 @@ interface UpdateContestBody {
   endTime?: string;
   isPublic?: boolean;
   questionIds?: string[];
+  organizationName?: string;
+  rules?: string;
+  prizes?: string;
+  score?: number;
 }
 
 export const updateContest = async (
@@ -55,7 +59,11 @@ export const updateContest = async (
       startTime,
       endTime,
       isPublic,
-      questionIds
+      questionIds,
+      organizationName,
+      rules,
+      prizes,
+      score
     } = req.body as UpdateContestBody;
 
     let startDateTime = existingContest.startTime;
@@ -111,6 +119,10 @@ export const updateContest = async (
         ...(startTime && { startTime: startDateTime }),
         ...(endTime && { endTime: endDateTime }),
         ...(typeof isPublic !== 'undefined' && { isPublic }),
+        ...(organizationName && { organizationName }),
+        ...(rules && { rules }),
+        ...(prizes && { prizes }),
+        ...(score && { score }),
         ...(questionConnections && { questions: questionConnections })
       },
       include: {
