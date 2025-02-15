@@ -14,6 +14,10 @@ model Contest {
   status        ContestStatus @default(UPCOMING)
   createdAt     DateTime   @default(now())
   updatedAt     DateTime   @updatedAt
+  organizationName String?
+  rules           String?
+  prizes          String?
+  score           Int     @default(0)
   
   // Relations
   creator       User       @relation("CreatedContests", fields: [creatorId], references: [id])
