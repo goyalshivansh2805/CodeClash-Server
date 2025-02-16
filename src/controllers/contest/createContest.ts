@@ -4,7 +4,7 @@ import { CustomError, CustomRequest } from '../../types';
 
 interface CreateContestBody {
   title: string;
-  description: string;
+  description?: string;
   startTime: string;
   endTime: string;
   isPublic?: boolean;
@@ -39,7 +39,7 @@ export const createContest = async (
       score
     } = req.body as CreateContestBody;
 
-    if (!title || !description || !startTime || !endTime) {
+    if (!title || !startTime || !endTime) {
       throw new CustomError('Missing required fields', 400);
     }
 
