@@ -16,7 +16,8 @@ import {
   startContest,
   endContest,
   getContestStatus,
-  getAllContestsByCreator
+  getAllContestsByCreator,
+  getAllQuestions
 } from '../controllers/contest';
 
 const router = Router();
@@ -28,6 +29,8 @@ router.post('/', verifyToken, createContest);
 router.post('/addQuestions', verifyToken, createQuestion);
 router.put('/updateQuestions', verifyToken, updateQuestion);
 router.delete('/deleteQuestions', verifyToken, deleteQuestion);
+router.get('/questions/all', verifyToken, getAllQuestions);
+
 
 router.get('/my-contests' , verifyToken , getAllContestsByCreator)
 router.get('/:contestId', verifyToken, getContestDetails);
@@ -46,5 +49,7 @@ router.post('/:contestId/join', verifyToken, joinContest);
 router.post('/:contestId/start', verifyToken, startContest);
 router.post('/:contestId/end', verifyToken, endContest);
 router.get('/:contestId/status', verifyToken, getContestStatus);
+
+router.get('/questions/all', verifyToken, getAllQuestions);
 
 export default router;
