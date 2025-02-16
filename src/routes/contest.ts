@@ -12,7 +12,10 @@ import {
   deleteQuestion,
   updateContestLeaderboard,
   getContestLeaderboard,
-  getUserContestRank
+  getUserContestRank,
+  startContest,
+  endContest,
+  getContestStatus
 } from '../controllers/contest';
 
 const router = Router();
@@ -36,5 +39,10 @@ router.get('/:contestId/rank', verifyToken, getUserContestRank);
 
 // Contest participation route
 router.post('/:contestId/join', verifyToken, joinContest);
+
+// Contest status management routes
+router.post('/:contestId/start', verifyToken, startContest);
+router.post('/:contestId/end', verifyToken, endContest);
+router.get('/:contestId/status', verifyToken, getContestStatus);
 
 export default router;
