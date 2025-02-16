@@ -12,3 +12,5 @@ export {updateContest} from "./updateContest";
 export {updateQuestion} from "./updateQues";
 
 export {startContest , endContest , getContestStatus } from './statusContest';
+
+export { getAllContestsByCreator } from './allContestByCreator' ;
