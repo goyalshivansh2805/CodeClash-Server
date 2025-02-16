@@ -17,7 +17,7 @@ model Contest {
   organizationName String?
   rules           String?
   prizes          String?
-  score           Int     @default(0)
+  score           String?
   
   // Relations
   creator       User       @relation("CreatedContests", fields: [creatorId], references: [id])
