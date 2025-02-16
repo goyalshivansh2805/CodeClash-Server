@@ -15,7 +15,8 @@ import {
   getUserContestRank,
   startContest,
   endContest,
-  getContestStatus
+  getContestStatus,
+  getAllContestsByCreator
 } from '../controllers/contest';
 
 const router = Router();
@@ -28,6 +29,7 @@ router.post('/addQuestions', verifyToken, createQuestion);
 router.put('/updateQuestions', verifyToken, updateQuestion);
 router.delete('/deleteQuestions', verifyToken, deleteQuestion);
 
+router.get('/my-contests' , verifyToken , getAllContestsByCreator)
 router.get('/:contestId', verifyToken, getContestDetails);
 router.put('/:contestId', verifyToken, updateContest);
 router.delete('/:contestId', verifyToken, deleteContest);
