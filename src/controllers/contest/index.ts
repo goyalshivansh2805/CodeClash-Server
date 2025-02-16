@@ -10,3 +10,5 @@ export {updateContestLeaderboard , getContestLeaderboard , getUserContestRank} f
 
 export {updateContest} from "./updateContest";
 export {updateQuestion} from "./updateQues";
+
+export {startContest , endContest , getContestStatus } from './statusContest';
