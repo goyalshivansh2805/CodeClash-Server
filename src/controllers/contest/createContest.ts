@@ -12,7 +12,7 @@ interface CreateContestBody {
   organizationName?: string;
   rules?: string;
   prizes?: string;
-  score?: number;
+  score?: string;
 }
 
 export const createContest = async (
@@ -81,7 +81,7 @@ export const createContest = async (
         organizationName,
         rules,
         prizes,
-        score: score || 0,
+        score: score,
         questions: {
           connect: questionIds.map(id => ({ id }))
         }

@@ -12,7 +12,7 @@ interface UpdateContestBody {
   organizationName?: string;
   rules?: string;
   prizes?: string;
-  score?: number;
+  score?: string;
 }
 
 export const updateContest = async (
