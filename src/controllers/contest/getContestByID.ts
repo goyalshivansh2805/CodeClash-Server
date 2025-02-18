@@ -21,7 +21,7 @@ export const getContestDetails = async (
 
     const now = new Date();
 
-    // Base contest query with common fields
+    // base contest query with common fields
     const contest = await prisma.contest.findUnique({
       where: {
         id: contestId
@@ -70,12 +70,12 @@ export const getContestDetails = async (
       throw new CustomError('Contest not found', 404);
     }
 
-    // Check access permissions
+    // access permissions
     if (!contest.isPublic && contest.creatorId !== userId && contest.participants.length === 0) {
       throw new CustomError('Unauthorized to view this contest', 403);
     }
 
-    // Update contest status based on current time
+    // update contest status based on current time
     let status = contest.status;
     if (now < contest.startTime && status !== ContestStatus.UPCOMING) {
       status = ContestStatus.UPCOMING;
@@ -85,7 +85,7 @@ export const getContestDetails = async (
       status = ContestStatus.ENDED;
     }
 
-    // Update status if changed
+    // udate status if changed
     if (status !== contest.status) {
       await prisma.contest.update({
         where: { id: contestId },
@@ -93,7 +93,7 @@ export const getContestDetails = async (
       });
     }
 
-    // Prepare base response
+    // prepare base response
     const baseResponse = {
       id: contest.id,
       title: contest.title,
@@ -115,10 +115,10 @@ export const getContestDetails = async (
       questionCount: contest._count.questions
     };
 
-    // Handle different contest states
+    // handle different contest states
     switch (status) {
       case ContestStatus.UPCOMING: {
-        // For upcoming contests, only creator can see questions
+        // for upcoming contests, only creator can see questions with IDs
         if (contest.creatorId === userId) {
           const questions = await prisma.contest.findUnique({
             where: { id: contestId },
@@ -134,18 +134,21 @@ export const getContestDetails = async (
               }
             }
           });
-           res.json({
+          res.json({
             message: 'Contest details retrieved successfully',
             contest: { ...baseResponse, questions: questions?.questions }
           });
+        } else {
+          res.json({
+            message: 'Contest details retrieved successfully',
+            contest: baseResponse
+          });
         }
-         res.json({
-          message: 'Contest details retrieved successfully',
-          contest: baseResponse
-        });
+        break;
       }
 
       case ContestStatus.ONGOING: {
+        // all participants can see question details with IDs during contest
         const contestData = await prisma.contest.findUnique({
           where: { id: contestId },
           select: {
@@ -186,13 +189,15 @@ export const getContestDetails = async (
             }), {})
         }));
 
-         res.json({
+        res.json({
           message: 'Contest details retrieved successfully',
           contest: { ...baseResponse, questions: questionsWithStats }
         });
+        break;
       }
 
       case ContestStatus.ENDED: {
+        // everyone can see full question details after contest ends
         const contestData = await prisma.contest.findUnique({
           where: { id: contestId },
           select: {
@@ -235,7 +240,7 @@ export const getContestDetails = async (
           }
         });
 
-         res.json({
+        res.json({
           message: 'Contest details retrieved successfully',
           contest: {
             ...baseResponse,
@@ -243,16 +248,17 @@ export const getContestDetails = async (
             topPerformers: contestData?.leaderboard
           }
         });
+        break;
       }
 
       default:
-         res.json({
+        res.json({
           message: 'Contest details retrieved successfully',
           contest: baseResponse
         });
     }
 
   } catch (error) {
-    return next(error);
+    next(error);
   }
 };

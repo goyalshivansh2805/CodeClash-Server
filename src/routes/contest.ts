@@ -17,7 +17,9 @@ import {
   endContest,
   getContestStatus,
   getAllContestsByCreator,
-  getAllQuestions
+  getAllQuestions,
+  handleRunCode,
+  handleSubmitCode
 } from '../controllers/contest';
 
 const router = Router();
@@ -49,6 +51,10 @@ router.post('/:contestId/join', verifyToken, joinContest);
 router.post('/:contestId/start', verifyToken, startContest);
 router.post('/:contestId/end', verifyToken, endContest);
 router.get('/:contestId/status', verifyToken, getContestStatus);
+
+// Code submission routes
+router.post('/:contestId/questions/:questionId/run', verifyToken, handleRunCode);
+router.post('/:contestId/questions/:questionId/submit', verifyToken, handleSubmitCode);
 
 router.get('/questions/all', verifyToken, getAllQuestions);
 
