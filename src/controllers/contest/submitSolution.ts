@@ -16,6 +16,9 @@ export const handleRunCode = async (req: CustomRequest, res: Response, next: Nex
   try {
     const { code, language, input } = req.body;
     const userId = req.user?.id;
+    const contestId = req.params.contestId;
+    const questionId = req.params.questionId;
+
     if (!userId) {
       throw new CustomError('User not found', 401);
     }
@@ -25,19 +28,19 @@ export const handleRunCode = async (req: CustomRequest, res: Response, next: Nex
     if(!ALLOWED_LANGUAGES[language as keyof typeof ALLOWED_LANGUAGES]){
       throw new CustomError('Invalid language', 400);
     }
-    const matchId = req.params.matchId;
 
-
-    const match = await prisma.match.findFirst({
+    // Check if contest exists and is ongoing
+    const contest = await prisma.contest.findFirst({
       where: { 
-        id: matchId,
+        id: contestId,
         status: 'ONGOING',
-        players: { some: { id: userId } }
+        participants: { some: { userId } },
+        questions: { some: { id: questionId } }
       }
     });
     
-    if (!match) {
-      throw new CustomError('Match not found or already ended', 404);
+    if (!contest) {
+      throw new CustomError('Contest not found or not active', 404);
     }
 
     const result = await invokeLambda({
@@ -61,7 +64,9 @@ export const handleSubmitCode = async (
   next: NextFunction
 ): Promise<void> => {
   try {
-    const { contestId, questionId, code, language } = req.body;
+    const { code, language } = req.body;
+    const contestId = req.params.contestId;
+    const questionId = req.params.questionId;
     const userId = req.user?.id;
 
     if (!userId) {
@@ -70,6 +75,10 @@ export const handleSubmitCode = async (
 
     if(!ALLOWED_LANGUAGES[language as keyof typeof ALLOWED_LANGUAGES]){
       throw new CustomError('Invalid language', 400);
+    }
+
+    if (!contestId || !questionId) {
+      throw new CustomError('Contest ID and Question ID are required', 400);
     }
 
     // Check if contest exists and is ongoing

@@ -16,3 +16,5 @@ export {startContest , endContest , getContestStatus } from './statusContest';
 export { getAllContestsByCreator } from './allContestByCreator' ;
 
 export { getAllQuestions } from './getAllQues' ;
+
+export { handleRunCode , handleSubmitCode } from './submitSolution'
