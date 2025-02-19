@@ -34,7 +34,27 @@ const refreshToken = async (req:Request,res:Response,next:NextFunction) => {
             next(new CustomError("User not found", 404));
             return;
         }
+        const session = await prisma.session.findFirst({
+            where:{
+                refreshToken:refreshToken,
+                refreshTokenExpiresAt:{
+                    gt:new Date()
+                }
+            }
+        })
+        if(!session){
+            next(new CustomError("Session not found", 404));
+            return;
+        }
         const accessToken = jwt.sign({ userId: decoded.userId,version:user.version }, process.env.ACCESS_TOKEN_SECRET!, { expiresIn: "10h" });
+        await prisma.session.update({
+            where:{
+                id:session.id
+            },
+            data:{
+                token:accessToken
+            }
+        })
         res.status(200).json({
             success: true,
             message: "Access token generated successfully",

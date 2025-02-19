@@ -33,12 +33,12 @@ export const findMatch = async (io: Server, socket: Socket) => {
     const mode = socket.data.mode;
     const userId = socket.data.userId;
     const queueKey = `matchmaking:${mode}`;
-    console.log('Queue key:', queueKey);
-    console.log('User ID:', userId);
+    //console.log('Queue key:', queueKey);
+    //console.log('User ID:', userId);
 
     // Get current player from queue
     const playerData = await redis.hGet(queueKey, userId);
-    console.log('Player data:', playerData);
+    //console.log('Player data:', playerData);
     if (!playerData) return;
 
     const player = JSON.parse(playerData) as QueuedPlayer;
@@ -47,7 +47,7 @@ export const findMatch = async (io: Server, socket: Socket) => {
 
     // Check timeout first
     if (queueTime >= MAX_QUEUE_TIME) {
-      console.log('Player timed out:', player.userId);
+      //console.log('Player timed out:', player.userId);
       await removeFromQueue(player.userId, player.mode);
       socket.emit('matchmaking_timeout');
       return;
@@ -64,11 +64,12 @@ export const findMatch = async (io: Server, socket: Socket) => {
       .map(p => JSON.parse(p) as QueuedPlayer)
       .find(p => 
         p.userId !== player.userId && 
-        Math.abs(p.rating - player.rating) <= adjustedRange
+        Math.abs(p.rating - player.rating) <= adjustedRange &&
+        p.mode === player.mode
       );
 
     if (opponent) {
-      console.log('Match found between', player.userId, 'and', opponent.userId);
+      //console.log('Match found between', player.userId, 'and', opponent.userId);
       
       // Remove both players from queue
       await Promise.all([
@@ -77,7 +78,7 @@ export const findMatch = async (io: Server, socket: Socket) => {
       ]);
 
       try {
-        const problems: Problem[] = await getMatchProblems();
+        const problems: Problem[] = await getMatchProblems(player.mode);
         // console.log(problems);
         const match = await prisma.match.create({
           data: {

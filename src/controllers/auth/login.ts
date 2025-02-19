@@ -3,7 +3,7 @@ import { prisma } from "../../config";
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
 import { CustomError } from "../../types";
-
+import {UAParser} from "ua-parser-js";
 /**
  * Logs in a user by validating their email and password.
  * @param {Request} req - The request object containing email and password.
@@ -53,10 +53,43 @@ const loginUser = async (req: Request, res: Response, next: NextFunction) => {
         refreshTokenKey,
         { expiresIn: "7d" }
       );
+
+      const userAgent = req.headers["user-agent"];
+      const parser = new UAParser(userAgent);
+      const uaDetails = parser.getResult();
+      const forwardedFor = Array.isArray(req.headers["x-forwarded-for"]) 
+          ? req.headers["x-forwarded-for"][0] 
+          : req.headers["x-forwarded-for"];
+
+      const sessionData = {
+        userId: user.id,
+        token: accessToken,
+        expiresAt: new Date(Date.now() + 10 * 60 * 1000),
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        refreshToken: refreshToken,
+        refreshTokenExpiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+        ipAddress: forwardedFor?.split(",")[0]?.trim() || req.ip || "Unknown",
+        userAgent: userAgent || "Unknown",
+        location: forwardedFor?.split(",")[0]?.trim() || "Unknown",
+        device: String(req.headers["x-device"] || uaDetails.device?.model || "Unknown"),
+        browser: String(req.headers["x-browser"] || uaDetails.browser?.name || "Unknown"),
+        os: String(req.headers["x-os"] || uaDetails.os?.name || "Unknown"),
+      };
+
+      await prisma.session.create({
+        data:sessionData
+      })
       res.status(200).send({
         success: true,
         message: "Login successful",
         data:{
+          user:{
+            id:user.id,
+            email:user.email,
+            name:user.username,
+            isVerified:user.isVerified,
+          },
           tokens:{
             accessToken,
             refreshToken

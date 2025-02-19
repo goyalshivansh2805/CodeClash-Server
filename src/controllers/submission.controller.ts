@@ -68,7 +68,12 @@ export const handleSubmitCode = async (
   try {
     const { matchId, questionId, code, language } = req.body;
     const userId = req.user?.id;
-
+    if(!matchId || !questionId || !code || !language || !userId){
+      throw new CustomError('Invalid request body', 400);
+    }
+    if(!ALLOWED_LANGUAGES[language as keyof typeof ALLOWED_LANGUAGES]){
+      throw new CustomError('Invalid language', 400);
+    }
     // Get match with questions count
     const match = await prisma.match.findFirst({
       where: { 
@@ -94,13 +99,10 @@ export const handleSubmitCode = async (
       throw new CustomError('Question not found', 404);
     }
 
-    if (!userId) {
-      throw new CustomError('User not found', 401);
-    }
-
     let passedTests = 0;
     let failedTestCase = null;
     let totalExecutionTime = 0;
+    let score = 0;
 
     for (const testCase of question.testCases) {
       const result = await invokeLambda({
@@ -121,7 +123,10 @@ export const handleSubmitCode = async (
             matchId,
             questionId,
             userId,
-            failedTestCase: passedTests + 1
+            failedTestCase: passedTests + 1,
+            score: score,
+            passedTestCases: passedTests,
+            totalTestCases: question.testCases.length
           }
         });
         throw new CustomError('Runtime error', 400, result.error);
@@ -130,6 +135,7 @@ export const handleSubmitCode = async (
       totalExecutionTime += result.executionTime || 0;
       if (result.body?.output?.trim() === testCase.output.trim()) {
         passedTests++;
+        score += testCase.score;
       } else {
         failedTestCase = passedTests + 1;
         break;
@@ -145,7 +151,10 @@ export const handleSubmitCode = async (
         questionId,
         userId,
         executionTime: Math.round(totalExecutionTime / question.testCases.length),
-        failedTestCase
+          failedTestCase,
+        score,
+        passedTestCases: passedTests,
+        totalTestCases: question.testCases.length,
       }
     });
 
@@ -193,7 +202,8 @@ export const handleSubmitCode = async (
       testCasesPassed: passedTests,
       totalTestCases: question.testCases.length,
       executionTime: submission.executionTime,
-      failedTestCase
+      failedTestCase,
+      score
     });
 
   } catch (error) {
