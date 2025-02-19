@@ -8,7 +8,7 @@
 ALTER TABLE "Submission" DROP CONSTRAINT "Submission_matchId_fkey";
 
 -- AlterTable
-ALTER TABLE "Question" ADD COLUMN     "creatorId" TEXT NOT NULL,
+ALTER TABLE "Question" ADD COLUMN     "creatorId" TEXT,
 ADD COLUMN     "isAddedByAdmin" BOOLEAN NOT NULL DEFAULT false;
 
 -- AlterTable

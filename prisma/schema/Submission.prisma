@@ -20,7 +20,9 @@ model Submission {
   executionTime Int?
   memory      Int?
   failedTestCase Int?
-
+  passedTestCases Int?
+  totalTestCases Int?
+  score Int?
   user        User      @relation(fields: [userId], references: [id])
   match       Match?    @relation(fields: [matchId], references: [id])
   contest     Contest?  @relation(fields: [contestId], references: [id])

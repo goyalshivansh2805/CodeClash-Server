@@ -18,16 +18,24 @@ export const verifySocketToken = async (
       version: number;
     };
 
-    const user = await prisma.user.findUnique({
-      where: { id: decoded.userId },
-      select: {
-        id: true,
+    const [user,session] = await Promise.all([
+      prisma.user.findUnique({
+        where: { id: decoded.userId },
+        select: {
+          id: true,
         version: true,
         rating: true
       }
-    });
-
-    if (!user || user.version !== decoded.version) {
+    }),
+    prisma.session.findFirst({
+      where:{
+        token:token,
+        expiresAt:{
+          gt:new Date()
+        }
+      }
+    })]);
+    if (!user || user.version !== decoded.version || !session) {
       throw new Error('Authentication error');
     }
 
