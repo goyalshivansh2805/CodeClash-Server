@@ -103,7 +103,8 @@ export const createQuestion = async (
             create: testCases.map(tc => ({
               input: tc.input,
               output: tc.output,
-              isHidden: tc.isHidden || false
+              isHidden: tc.isHidden || false,
+              score: tc.score || 100
             }))
           },
           // connect the question to the contest
@@ -131,6 +132,60 @@ export const createQuestion = async (
       }
     });
 
+  } catch (error) {
+    return next(error);
+  }
+};
+
+export const getContestQuestions = async (
+  req: CustomRequest,
+  res: Response,
+  next: NextFunction
+): Promise<void> => {
+  try {
+    const { contestId } = req.params;
+    if (!contestId) {
+      throw new CustomError('Contest ID is missing', 400);
+    }
+    const userId = req.user?.id;
+    if (!userId) {
+      throw new CustomError('Unauthorized', 401);
+    }
+    const user = await prisma.user.findUnique({
+      where: { id: userId }
+    }); 
+    if (!user?.isAdmin) {
+      throw new CustomError('Unauthorized', 401);
+    }
+    const contest = await prisma.contest.findFirst({
+      where: {
+        id: contestId,
+        participants: {
+          some: {
+            userId
+          }
+        }
+      }
+    });
+
+    if (!contest) {
+      throw new CustomError('Contest not found', 404);
+    }
+
+    const questions = await prisma.question.findMany({
+      where: {
+        contests: {
+          some: {
+            id: contestId
+          }
+        }
+      }
+    });
+
+    res.status(200).json({
+      message: 'Contest questions fetched successfully',
+      data: questions
+    });
   } catch (error) {
     return next(error);
   }

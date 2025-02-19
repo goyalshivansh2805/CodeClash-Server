@@ -1,5 +1,5 @@
 import { PrismaClient } from '@prisma/client';
-import {setupOTPCleanup} from "../utility"
+import {setupOTPCleanup,setupSessionCleanup} from "../utility"
 
 const prisma = new PrismaClient();
 
@@ -10,7 +10,10 @@ const prisma = new PrismaClient();
 async function connectDB(): Promise<void> {
   try {
     await prisma.$connect();
-    await setupOTPCleanup();
+    await Promise.all([
+      setupOTPCleanup(),
+      setupSessionCleanup()
+    ]);
     console.log("Connected to the database!");
   } catch (err) {
     console.error("Connection error", err);

@@ -3,6 +3,7 @@ import { CustomRequest, CustomError } from "../../types";
 import { prisma } from "../../config";
 import { Skill } from "@prisma/client";
 import bcrypt from "bcrypt";
+import { sendOtpEmail } from "../auth";
 
 
 const updateSkillLevel = async (
@@ -154,12 +155,17 @@ const logOutOfAllDevices = async (req: CustomRequest, res: Response, next: NextF
       next(new CustomError("User not found", 404));
       return;
     }
-    await prisma.user.update({
-      where: { id },
-      data: {
-        version: user.version + 1
-      }
-    });
+    await prisma.$transaction([
+      prisma.user.update({
+        where: { id },
+        data: { version: user.version + 1 }
+      }),
+      prisma.session.deleteMany({
+        where:{
+          userId:id
+        }
+      })
+    ])
     res.status(200).json({
       success: true,
       message: "Logged out of all devices successfully"
@@ -253,4 +259,67 @@ const getUserProfile = async (req: CustomRequest, res: Response, next: NextFunct
   }
 }
 
-export { updateSkillLevel, changePassword, changeUsername, logOutOfAllDevices, deleteAccount, getUserProfile };
+const getUserSessions = async (req: CustomRequest, res: Response, next: NextFunction) => {
+  try {
+    const id = req.user?.id;
+    if (!id) {
+      next(new CustomError("User not found", 404)); 
+      return;
+    }
+    const sessions = await prisma.session.findMany({
+      where:{
+        userId:id
+      }
+    })  
+    res.status(200).json({
+      success: true,
+      data: sessions
+    });
+  } catch (error) {
+    next(new CustomError("Something went wrong", 500, `${(error as Error).message}`));
+  }
+}
+
+const logOutFromSession = async (req: CustomRequest, res: Response, next: NextFunction) => {
+  try {
+    const id = req.user?.id;
+    if (!id) {
+      next(new CustomError("User not found", 404));
+      return;
+    }
+    const { sessionId } = req.body as { sessionId: string };
+    if (!sessionId) {
+      next(new CustomError("Session ID is required", 400));
+      return;
+    }
+    await prisma.session.delete({
+      where:{
+        id:sessionId
+      }
+    })
+  } catch (error) {
+    next(new CustomError("Something went wrong", 500, `${(error as Error).message}`));
+  }
+}
+ 
+const logout = async (req: CustomRequest, res: Response, next: NextFunction) => {
+  try {
+    const { token } = req.body as { token: string };
+    if (!token) {
+      next(new CustomError("Token is required", 400));
+      return;
+    }
+    await prisma.session.deleteMany({
+      where:{
+        token:token
+      }
+    })
+    res.status(200).json({
+      success: true,
+      message: "Logged out successfully"
+    });
+  } catch (error) {
+    next(new CustomError("Something went wrong", 500, `${(error as Error).message}`));
+  }
+}
+export { updateSkillLevel, changePassword, changeUsername, logOutOfAllDevices, deleteAccount, getUserProfile, getUserSessions, logout, logOutFromSession };

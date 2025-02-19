@@ -1,0 +1,18 @@
+model Session {
+  id String @id @default(uuid())
+  userId String
+  token String
+  refreshToken String
+  expiresAt DateTime
+  refreshTokenExpiresAt DateTime
+  ipAddress String
+  userAgent String
+  location String
+  device String
+  browser String
+  os String
+  isActive Boolean @default(true)
+  user User @relation(fields: [userId], references: [id])
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}

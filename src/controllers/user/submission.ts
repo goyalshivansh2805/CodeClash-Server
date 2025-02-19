@@ -43,6 +43,9 @@ const getSubmissions = async (req: CustomRequest, res: Response, next: NextFunct
                     },
                     createdAt:true,
                     language:true,
+                    passedTestCases:true,
+                    totalTestCases:true,
+                    score:true
                 },
                 skip,
                 take
@@ -104,7 +107,10 @@ const getSubmissionById = async (req: CustomRequest, res: Response, next: NextFu
                         winnerId:true,
                         createdAt:true,
                     }
-                }
+                },
+                passedTestCases:true,
+                totalTestCases:true,
+                score:true
             }
         });
         
@@ -154,6 +160,9 @@ const getSubmissionByMatchId = async(req:CustomRequest,res:Response,next:NextFun
                 },
             select:{
                 submissions:{
+                    where:{
+                        userId:id
+                    },
                     select:{
                         id:true,
                         status:true,
@@ -164,7 +173,10 @@ const getSubmissionByMatchId = async(req:CustomRequest,res:Response,next:NextFun
                                 title:true,
                                 difficulty:true
                             }
-                        }
+                        },
+                        passedTestCases:true,
+                        totalTestCases:true,
+                        score:true
                     },
                     skip,
                     take
@@ -173,7 +185,8 @@ const getSubmissionByMatchId = async(req:CustomRequest,res:Response,next:NextFun
             }),
             prisma.submission.count({
                 where:{
-                    matchId
+                    matchId,
+                    userId:id
                 }
             })
         ]);
@@ -197,4 +210,88 @@ const getSubmissionByMatchId = async(req:CustomRequest,res:Response,next:NextFun
         next(new CustomError("Something went wrong", 500, `${(error as Error).message}`));
     }
 }
-export { getSubmissions, getSubmissionById, getSubmissionByMatchId };
+
+const getSubmissionByContestId = async(req:CustomRequest,res:Response,next:NextFunction)=>{
+    try {
+        const id = req.user?.id;
+        if(!id){
+            next(new CustomError("User not found", 404));
+            return;
+        }
+        const contestId = req.params.id;
+        const {page = 1,limit = 10} = req.query;
+        const pageNumber = parseInt(page as string);
+        const pageLimit = parseInt(limit as string);
+        const skip = (pageNumber - 1) * pageLimit;
+        const take = pageLimit;
+        if(!contestId){
+            next(new CustomError("Contest ID is required", 400));
+            return;
+        }
+        const user = await prisma.user.findUnique({
+            where:{
+                id
+            }
+        });
+        if(!user){
+            next(new CustomError("User not found", 404));
+            return;
+        }
+        const [contest,totalCount] = await Promise.all([
+            prisma.contest.findUnique({
+                where:{
+                    id:contestId
+                },
+            select:{
+                submissions:{
+                    where:{
+                        userId:id
+                    },
+                    select:{
+                        id:true,
+                        status:true,
+                        createdAt:true,
+                        language:true,
+                        question:{
+                            select:{
+                                title:true,
+                                difficulty:true
+                            }
+                        },
+                        passedTestCases:true,
+                        totalTestCases:true,
+                        score:true
+                    },
+                    skip,
+                    take
+                }
+            }
+            }),
+            prisma.submission.count({
+                where:{
+                    contestId,
+                    userId:id
+                }
+            })
+        ]);
+        if(!contest){
+            next(new CustomError("Contest not found", 404));
+            return;
+        }
+        const totalPages = Math.ceil(totalCount / pageLimit);
+        const submissions = contest.submissions.slice(skip,skip+take);
+        res.status(200).json({
+            success: true,
+            submissions,
+            pagination: {
+                totalCount,
+                totalPages,
+                currentPage: pageNumber,
+                limit: pageLimit
+            }
+        });
+    } catch (error) {
+        next(new CustomError("Something went wrong", 500, `${(error as Error).message}`));
+    }
+}
+export { getSubmissions, getSubmissionById, getSubmissionByMatchId, getSubmissionByContestId };

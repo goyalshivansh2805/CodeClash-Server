@@ -2,8 +2,8 @@ export {loginUser,registerUser,startGoogleOauth,googleOauthCallback , startGithu
     ,resetPassword,requestPasswordReset,verifyOtp,sendOtpEmail,resendOtp,generateTokens,isEmailExists,refreshToken
 } from "./auth";
 
-export {updateSkillLevel,changePassword,changeUsername,logOutOfAllDevices,deleteAccount,getSubmissions,getSubmissionById,getSubmissionByMatchId,getUserProfile} from "./user";
+export {updateSkillLevel,changePassword,changeUsername,logOutOfAllDevices,deleteAccount,getSubmissions,getSubmissionById,getSubmissionByMatchId,getUserProfile,getSubmissionByContestId} from "./user";
 
 export {getQuestion} from "./question/question";
 
-export {getLeaderboard,getRecentMatches,getWinTrend} from "./dashboard/dashboard";
+export {getLeaderboard,getRecentMatches,getWinTrend,getProfileHeatmap,getRecentContest} from "./dashboard/dashboard";

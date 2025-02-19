@@ -39,4 +39,5 @@ model User {
   contestParticipations ContestParticipation[] // opposite of ContestParticipation.user
   submissions    Submission[]
   contestLeaderboardEntries ContestLeaderboard[] @relation("ContestLeaderboardEntries")
+  sessions Session[]
 }

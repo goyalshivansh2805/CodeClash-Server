@@ -32,7 +32,7 @@ export const createQuestion = async (
       rating,
       timeLimit,
       memoryLimit,
-      testCases
+      testCases,
     } = req.body;
 
     // Validate required fields
@@ -64,11 +64,13 @@ export const createQuestion = async (
         creator: {
           connect: { id: userId }
         },
+        isAddedByAdmin: true,
         testCases: {
           create: testCases.map(tc => ({
             input: tc.input,
             output: tc.output,
-            isHidden: tc.isHidden || false
+            isHidden: tc.isHidden || false,
+            score: tc.score || 100
           }))
         }
       },

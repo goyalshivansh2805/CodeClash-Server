@@ -5,6 +5,14 @@ import {
   getGameState, 
   calculateRatingChange
 } from '../services/gameService';
+import { Skill } from '@prisma/client';
+
+const LEVEL_RATINGS = {
+  BEGINNER: 800,
+  INTERMEDIATE: 1200,
+  PRO:1600
+};
+
 
 export const handleGameStart = async (io: Server, socket: Socket, matchId: string) => {
   try {
@@ -43,6 +51,12 @@ export const handleGameStart = async (io: Server, socket: Socket, matchId: strin
   }
 };
 
+function getSkillLevel(rating: number): Skill {
+  if (rating < LEVEL_RATINGS.INTERMEDIATE) return 'BEGINNER';
+  if (rating < LEVEL_RATINGS.PRO) return 'INTERMEDIATE';
+  return 'PRO';
+}
+
 export async function handleGameEnd(io: Server, matchId: string, winnerId: string) {
   try {
     const match = await prisma.match.update({
@@ -74,6 +88,8 @@ export async function handleGameEnd(io: Server, matchId: string, winnerId: strin
       loser.rating ?? 800
     );
 
+
+
     await Promise.all([
       prisma.user.update({
         where: { id: winner.id },
@@ -82,7 +98,8 @@ export async function handleGameEnd(io: Server, matchId: string, winnerId: strin
           wins: (winner.wins ?? 0) + 1,
           matchesPlayed: (winner.matchesPlayed ?? 0) + 1,
           winStreak: (winner.winStreak ?? 0) + 1,
-          maxWinStreak: ((winner.winStreak ?? 0) + 1) > (winner.maxWinStreak ?? 0) ? ((winner.winStreak ?? 0) + 1) : (winner.maxWinStreak ?? 0)
+          maxWinStreak: ((winner.winStreak ?? 0) + 1) > (winner.maxWinStreak ?? 0) ? ((winner.winStreak ?? 0) + 1) : (winner.maxWinStreak ?? 0),
+          skillLevel: getSkillLevel((winner.rating ?? 800) + ratingChange)
         }
       }),
       prisma.user.update({
@@ -92,7 +109,8 @@ export async function handleGameEnd(io: Server, matchId: string, winnerId: strin
           losses: (loser.losses ?? 0) + 1,
           matchesPlayed: (loser.matchesPlayed ?? 0) + 1,
           winStreak:0,
-          maxWinStreak: (loser.winStreak ?? 0 ) > (loser.maxWinStreak ?? 0) ? (loser.winStreak ?? 0 ) : (loser.maxWinStreak ?? 0)
+          maxWinStreak: (loser.winStreak ?? 0 ) > (loser.maxWinStreak ?? 0) ? (loser.winStreak ?? 0 ) : (loser.maxWinStreak ?? 0),
+          skillLevel: getSkillLevel((loser.rating ?? 800) - ratingChange)
         }
       })
     ]);

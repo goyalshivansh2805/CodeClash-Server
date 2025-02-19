@@ -3,7 +3,7 @@ import {CustomError, CustomOtpRequest} from '../../types';
 import { sendEmail } from '../../utility';
 import { prisma } from '../../config';
 import jwt from 'jsonwebtoken';
-
+import {UAParser} from "ua-parser-js";
 
 const generateEmailContent = (otp: string, username: string, type: string) => {
   const isRegister = type === "register";
@@ -154,6 +154,32 @@ const verifyOtp = async (req: CustomOtpRequest, res: Response, next: NextFunctio
         refreshTokenKey,
         { expiresIn: "7d" }
       );
+      const userAgent = req.headers["user-agent"];
+      const parser = new UAParser(userAgent);
+      const uaDetails = parser.getResult();
+      const forwardedFor = Array.isArray(req.headers["x-forwarded-for"]) 
+          ? req.headers["x-forwarded-for"][0] 
+          : req.headers["x-forwarded-for"];
+
+      const sessionData = {
+        userId: user.id,
+        token: accessToken,
+        expiresAt: new Date(Date.now() + 10 * 60 * 1000),
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        refreshToken: refreshToken,
+        refreshTokenExpiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+        ipAddress: forwardedFor?.split(",")[0]?.trim() || req.ip || "Unknown",
+        userAgent: userAgent || "Unknown",
+        location: forwardedFor?.split(",")[0]?.trim() || "Unknown",
+        device: String(req.headers["x-device"] || uaDetails.device?.model || "Unknown"),
+        browser: String(req.headers["x-browser"] || uaDetails.browser?.name || "Unknown"),
+        os: String(req.headers["x-os"] || uaDetails.os?.name || "Unknown"),
+      };
+
+      await prisma.session.create({
+        data:sessionData
+      })
       return { user, accessToken, refreshToken };
     });
     
@@ -161,7 +187,12 @@ const verifyOtp = async (req: CustomOtpRequest, res: Response, next: NextFunctio
       success: true,
       message: type === "register" ? "Email verified successfully" : "Logged in successfully",
       data:{
-        userId:result?.user.id,
+        user:{
+          id:result?.user.id,
+          username:result?.user.username,
+          email:result?.user.email,
+          isVerified:result?.user.isVerified,          
+        },
         tokens:{
           accessToken:result?.accessToken,
           refreshToken:result?.refreshToken
