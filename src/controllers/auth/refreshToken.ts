@@ -52,7 +52,8 @@ const refreshToken = async (req:Request,res:Response,next:NextFunction) => {
                 id:session.id
             },
             data:{
-                token:accessToken
+                token:accessToken,
+                expiresAt:new Date(Date.now() + 10 * 60 * 60 * 1000)
             }
         })
         res.status(200).json({

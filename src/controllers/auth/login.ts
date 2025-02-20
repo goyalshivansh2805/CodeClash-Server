@@ -64,7 +64,7 @@ const loginUser = async (req: Request, res: Response, next: NextFunction) => {
       const sessionData = {
         userId: user.id,
         token: accessToken,
-        expiresAt: new Date(Date.now() + 10 * 60 * 1000),
+        expiresAt: new Date(Date.now() + 10 * 60 * 60 * 1000),
         createdAt: new Date(),
         updatedAt: new Date(),
         refreshToken: refreshToken,
