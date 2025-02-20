@@ -164,7 +164,7 @@ const verifyOtp = async (req: CustomOtpRequest, res: Response, next: NextFunctio
       const sessionData = {
         userId: user.id,
         token: accessToken,
-        expiresAt: new Date(Date.now() + 10 * 60 * 1000),
+        expiresAt: new Date(Date.now() + 10 * 60 * 60 * 1000),
         createdAt: new Date(),
         updatedAt: new Date(),
         refreshToken: refreshToken,
