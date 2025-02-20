@@ -3,7 +3,8 @@ import {passport, prisma} from '../../config';
 import { CustomError } from '../../types';
 import { OauthUser } from '../../interfaces';
 import jwt from 'jsonwebtoken';
-
+import { UAParser } from 'ua-parser-js';
+import { promise } from 'zod';
 const startGoogleOauth = (req:Request , res:Response,next:NextFunction) => {
     passport.authenticate("google", {
         scope: ["profile", "email"],
@@ -88,14 +89,48 @@ const generateTokens =async (req:Request,res:Response,next:NextFunction) => {
         refreshTokenKey,
         { expiresIn: "7d" }
       );
-      await prisma.user.update({
-        where: { email: decoded.email },
-        data: { tempOAuthToken: null },
-      });
+      const userAgent = req.headers["user-agent"];
+      const parser = new UAParser(userAgent);
+      const uaDetails = parser.getResult();
+      const forwardedFor = Array.isArray(req.headers["x-forwarded-for"]) 
+          ? req.headers["x-forwarded-for"][0] 
+          : req.headers["x-forwarded-for"];
+
+      const sessionData = {
+        userId: user.id,
+        token: accessToken,
+        expiresAt: new Date(Date.now() + 10 * 60 * 60 * 1000),
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        refreshToken: refreshToken,
+        refreshTokenExpiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+        ipAddress: forwardedFor?.split(",")[0]?.trim() || req.ip || "Unknown",
+        userAgent: userAgent || "Unknown",
+        location: forwardedFor?.split(",")[0]?.trim() || "Unknown",
+        device: String(req.headers["x-device"] || uaDetails.device?.model || "Unknown"),
+        browser: String(req.headers["x-browser"] || uaDetails.browser?.name || "Unknown"),
+        os: String(req.headers["x-os"] || uaDetails.os?.name || "Unknown"),
+      };
+      await Promise.all([
+        prisma.session.create({
+          data:sessionData
+        }),
+        prisma.user.update({
+          where: { email: decoded.email },
+          data: { tempOAuthToken: null },
+        })
+      ])
+      
       res.status(200).send({
         success: true,
         message: "Login successful",
         data:{
+          user:{
+            id:user.id,
+            email:user.email,
+            name:user.username,
+            isVerified:user.isVerified,
+          },
           tokens:{
             accessToken,
             refreshToken
