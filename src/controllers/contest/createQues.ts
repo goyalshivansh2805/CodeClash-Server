@@ -137,6 +137,64 @@ export const createQuestion = async (
   }
 };
 
+export const addQuestionToContestFromLibrary = async (
+  req: CustomRequest,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const userId = req.user?.id;
+    if (!userId) {
+      throw new CustomError('Unauthorized', 401);
+    }
+    const { questionId, contestId } = req.body;
+    if (!questionId || !contestId) {
+      throw new CustomError('Missing required fields', 400);
+    }
+    const question = await prisma.question.findUnique({
+      where: {
+        id: questionId
+      }
+    });
+    if (!question) {
+      throw new CustomError('Question not found', 404);
+    }
+    const contest = await prisma.contest.findUnique({
+      where: {
+        id: contestId
+      },
+      include: {
+        questions: true
+      }
+    });
+    if (!contest) {
+      throw new CustomError('Contest not found', 404);
+    }
+    if (contest.creatorId !== userId) {
+      throw new CustomError('Unauthorized', 401);
+    }
+    if(contest.startTime <= new Date()) {
+      throw new CustomError('Cannot add questions to an ongoing contest', 400);
+    }
+    if(contest.questions.find((q) => q.id === questionId)) {
+      throw new CustomError('Question already exists in contest', 400);
+    }
+    await prisma.contest.update({
+      where: {
+        id: contestId
+      },
+      data: {
+        questions: { connect: { id: questionId } }
+      }
+    });
+    res.status(200).json({
+      message: 'Question added to contest successfully'
+    });
+  } catch (error) { 
+    return next(error);
+  }
+}
+
 export const getContestQuestions = async (
   req: CustomRequest,
   res: Response,

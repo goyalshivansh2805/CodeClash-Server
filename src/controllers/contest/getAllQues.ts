@@ -21,6 +21,12 @@ export const getAllQuestions = async (
           score: true,
           createdAt: true,
         },
+        where:{
+          OR:[
+            {isAddedByAdmin: true},
+            {creatorId: req.user?.id}
+          ]
+        },
         orderBy: {
           createdAt: 'desc'
         },
