@@ -29,6 +29,7 @@ router.post('/', createContest);
 
 // Contest question management routes
 router.post('/addQuestions', createQuestion);
+router.post('/addQuestionsFromLibrary', addQuestionToContestFromLibrary);
 router.put('/updateQuestions', updateQuestion);
 router.delete('/deleteQuestions', deleteQuestion);
 router.get('/questions/all', getAllQuestions);
@@ -57,5 +58,4 @@ router.post('/:contestId/questions/:questionId/run', handleRunCode);
 router.post('/:contestId/questions/:questionId/submit', handleSubmitCode);
 
 router.get('/questions/all', getAllQuestions);
-router.post('/:contestId/questions/add', addQuestionToContestFromLibrary);
 export default router;
