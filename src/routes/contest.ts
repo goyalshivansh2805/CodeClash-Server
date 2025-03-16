@@ -1,5 +1,4 @@
 import { Router } from 'express';
-import  verifyToken  from '../middlewares/verifyToken';
 
 import {
   createContest,
@@ -19,43 +18,44 @@ import {
   getAllContestsByCreator,
   getAllQuestions,
   handleRunCode,
-  handleSubmitCode
+  handleSubmitCode,
+  addQuestionToContestFromLibrary
 } from '../controllers/contest';
 
 const router = Router();
 
 // Contest CRUD routes
-router.post('/', verifyToken, createContest);
+router.post('/', createContest);
 
 // Contest question management routes
-router.post('/addQuestions', verifyToken, createQuestion);
-router.put('/updateQuestions', verifyToken, updateQuestion);
-router.delete('/deleteQuestions', verifyToken, deleteQuestion);
-router.get('/questions/all', verifyToken, getAllQuestions);
+router.post('/addQuestions', createQuestion);
+router.put('/updateQuestions', updateQuestion);
+router.delete('/deleteQuestions', deleteQuestion);
+router.get('/questions/all', getAllQuestions);
 
 
-router.get('/my-contests' , verifyToken , getAllContestsByCreator)
-router.get('/:contestId', verifyToken, getContestDetails);
-router.put('/:contestId', verifyToken, updateContest);
-router.delete('/:contestId', verifyToken, deleteContest);
+router.get('/my-contests' , getAllContestsByCreator)
+router.get('/:contestId', getContestDetails);
+router.put('/:contestId', updateContest);
+router.delete('/:contestId', deleteContest);
 
 // Contest leaderboard routes
-router.post('/:contestId/leaderboard', verifyToken, updateContestLeaderboard);
-router.get('/:contestId/leaderboard', verifyToken, getContestLeaderboard);  
-router.get('/:contestId/rank', verifyToken, getUserContestRank);
+router.post('/:contestId/leaderboard', updateContestLeaderboard);
+router.get('/:contestId/leaderboard', getContestLeaderboard);  
+router.get('/:contestId/rank', getUserContestRank);
 
 // Contest participation route
-router.post('/:contestId/join', verifyToken, joinContest);
+router.post('/:contestId/join', joinContest);
 
 // Contest status management routes
-router.post('/:contestId/start', verifyToken, startContest);
-router.post('/:contestId/end', verifyToken, endContest);
-router.get('/:contestId/status', verifyToken, getContestStatus);
+router.post('/:contestId/start', startContest);
+router.post('/:contestId/end', endContest);
+router.get('/:contestId/status', getContestStatus);
 
 // Code submission routes
-router.post('/:contestId/questions/:questionId/run', verifyToken, handleRunCode);
-router.post('/:contestId/questions/:questionId/submit', verifyToken, handleSubmitCode);
+router.post('/:contestId/questions/:questionId/run', handleRunCode);
+router.post('/:contestId/questions/:questionId/submit', handleSubmitCode);
 
-router.get('/questions/all', verifyToken, getAllQuestions);
-
+router.get('/questions/all', getAllQuestions);
+router.post('/:contestId/questions/add', addQuestionToContestFromLibrary);
 export default router;
