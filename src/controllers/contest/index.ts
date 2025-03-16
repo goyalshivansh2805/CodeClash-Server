@@ -1,6 +1,6 @@
 
 export {createContest} from "./createContest";
-export {createQuestion} from "./createQues";
+export {createQuestion, addQuestionToContestFromLibrary} from "./createQues";
 export {deleteContest} from "./deleteContest";
 export {joinContest} from "./joinContest"
 export {deleteQuestion} from "./deleteQues";
