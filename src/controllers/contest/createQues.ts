@@ -77,8 +77,8 @@ export const createQuestion = async (
     }
 
     // validate test cases
-    if (!Array.isArray(testCases) || testCases.length < 2) {
-      throw new CustomError('At least 2 test cases are required', 400);
+    if (!Array.isArray(testCases) || testCases.length < 1) {
+      throw new CustomError('At least 1 test case is required', 400);
     }
 
     // create question and add to contest in a transaction

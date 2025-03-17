@@ -39,9 +39,16 @@ export const handleRunCode = async (req: CustomRequest, res: Response, next: Nex
         players: { some: { id: userId } }
       }
     });
+    const contest = await prisma.contest.findFirst({
+      where: {
+        id: matchId,
+        participants: { some: { userId } }
+      }
+    });
     
-    if (!match) {
-      throw new CustomError('Match not found or already ended', 404);
+
+    if (!match && !contest) {
+      throw new CustomError('Match or contest not found', 404);
     }
 
     const result = await invokeLambda({
@@ -85,9 +92,16 @@ export const handleSubmitCode = async (
         matchQuestions: true
       }
     });
+    const contest = await prisma.contest.findFirst({
+      where: {
+        id: matchId,
+        participants: { some: { userId } }
+      }
+    });
+    
 
-    if (!match) {
-      throw new CustomError('Match not found or already ended', 404);
+    if (!match && !contest) {
+      throw new CustomError('Match or contest not found', 404);
     }
 
     const question = await prisma.question.findUnique({
@@ -147,7 +161,8 @@ export const handleSubmitCode = async (
         code,
         language,
         status: passedTests === question.testCases.length ? 'ACCEPTED' : 'WRONG_ANSWER',
-        matchId,
+        matchId: match ? matchId : null,
+        contestId: contest ? contest.id : null,
         questionId,
         userId,
         executionTime: Math.round(totalExecutionTime / question.testCases.length),
@@ -159,7 +174,7 @@ export const handleSubmitCode = async (
     });
 
     // After successful submission
-    if (passedTests === question.testCases.length) {
+    if ((passedTests === question.testCases.length) && match) {
       // Get all accepted submissions for this match
       const acceptedSubmissions = await prisma.submission.findMany({
         where: {
@@ -191,7 +206,7 @@ export const handleSubmitCode = async (
       });
 
       // Check if player won (solved all problems)
-      if (problemsSolved === match.matchQuestions.length) {
+      if (problemsSolved === (match?.matchQuestions.length || 0)) {
         await handleGameEnd(io, matchId, userId);
       }
     }
