@@ -45,13 +45,15 @@ export const updateContest = async (
       throw new CustomError('Contest not found or unauthorized', 404);
     }
 
-    if (existingContest.startTime <= new Date()) {
-      throw new CustomError('Cannot update contest that has already started', 400);
-    }
+    // Adding Questions to a contest that has already started or has participants is not allowed
 
-    if (existingContest.participants.length > 0) {
-      throw new CustomError('Cannot update contest with registered participants', 400);
-    }
+    // if (existingContest.startTime <= new Date()) {
+    //   throw new CustomError('Cannot update contest that has already started', 400);
+    // }
+
+    // if (existingContest.participants.length > 0) {
+    //   throw new CustomError('Cannot update contest with registered participants', 400);
+    // }
 
     const {
       title,
