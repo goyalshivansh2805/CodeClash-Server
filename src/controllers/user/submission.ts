@@ -294,4 +294,81 @@ const getSubmissionByContestId = async(req:CustomRequest,res:Response,next:NextF
         next(new CustomError("Something went wrong", 500, `${(error as Error).message}`));
     }
 }
-export { getSubmissions, getSubmissionById, getSubmissionByMatchId, getSubmissionByContestId };
+
+const getSubmissionByQuestionIdAndContestId = async(req:CustomRequest,res:Response,next:NextFunction)=>{
+    try {
+        const id = req.user?.id;
+        if(!id){
+            next(new CustomError("User not found", 404));
+            return;
+        }
+        const questionId = req.params.questionId;
+        const contestId = req.params.contestId;
+        const {page = 1,limit = 10} = req.query;
+        const pageNumber = parseInt(page as string);
+        const pageLimit = parseInt(limit as string);
+        const skip = (pageNumber - 1) * pageLimit;
+        const take = pageLimit;         
+        if(!questionId || !contestId){
+            next(new CustomError("Question ID and Contest ID are required", 400));
+            return;
+        }
+        const user = await prisma.user.findUnique({
+            where:{
+                id
+            }
+        });
+        if(!user){
+            next(new CustomError("User not found", 404));
+            return;
+        }
+        const [question,contest] = await Promise.all([
+            prisma.question.findUnique({
+                where:{
+                    id:questionId
+                }
+            }),
+            prisma.contest.findUnique({
+                where:{
+                    id:contestId
+                }
+            })
+        ])
+        if(!question || !contest){
+            next(new CustomError("Question or Contest not found", 404));
+            return;
+        }
+        const [submissions,totalCount] = await Promise.all([
+            prisma.submission.findMany({
+                where:{
+                    questionId,
+                    contestId,
+                    userId:id
+                },
+                skip,
+                take    
+            }),
+            prisma.submission.count({
+                where:{
+                    questionId,
+                    contestId,
+                    userId:id
+                }
+            })
+        ])
+        const totalPages = Math.ceil(totalCount / pageLimit);
+        res.status(200).json({
+            success: true,
+            submissions,
+            pagination: {
+                totalCount,
+                totalPages,
+                currentPage: pageNumber,
+                limit: pageLimit
+            }
+        });
+    } catch (error) {
+        next(new CustomError("Something went wrong", 500, `${(error as Error).message}`));
+    }
+}
+export { getSubmissions, getSubmissionById, getSubmissionByMatchId, getSubmissionByContestId, getSubmissionByQuestionIdAndContestId };
