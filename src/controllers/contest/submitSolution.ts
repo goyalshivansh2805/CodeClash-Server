@@ -3,6 +3,8 @@ import { v4 as uuidv4 } from 'uuid';
 import { prisma } from '../../config';
 import { CustomError, CustomRequest } from '../../types';
 import { invokeLambda } from '../../services/lambda.service';
+import { runQueue, submitQueue, submitQueueEvents } from '../../queues/queues';
+import { runQueueEvents } from '../../queues/queues';
 
 enum ALLOWED_LANGUAGES {
   'python' = 'python',
@@ -43,7 +45,7 @@ export const handleRunCode = async (req: CustomRequest, res: Response, next: Nex
       throw new CustomError('Contest not found or not active', 404);
     }
 
-    const result = await invokeLambda({
+    const job = await runQueue.add('run-code', {
       code,
       language,
       input,
@@ -52,6 +54,7 @@ export const handleRunCode = async (req: CustomRequest, res: Response, next: Nex
       userId
     });
 
+    const result = await job.waitUntilFinished(runQueueEvents);
     res.json(result);
   } catch (error) {
     next(error);
@@ -94,7 +97,8 @@ export const handleSubmitCode = async (
           where: { id: questionId },
           select: {
             score: true,
-            testCases: true
+            testCases: true,
+            timeLimit:true
           }
         }
       }
@@ -129,14 +133,16 @@ export const handleSubmitCode = async (
 
     // Run test cases
     for (const testCase of question.testCases) {
-      const result = await invokeLambda({
+      const job = await submitQueue.add('submit-code', {
         code,
         language,
         input: testCase.input,
-        timeout: 5,
+        timeout: question.timeLimit / 1000,
         taskId: uuidv4(),
         userId
       });
+
+      const result = await job.waitUntilFinished(submitQueueEvents);
 
       if (result.error) {
         await prisma.submission.create({
