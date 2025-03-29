@@ -27,18 +27,6 @@ const verifyToken = async (req: CustomRequest, res: Response, next: NextFunction
             next(new CustomError("Unauthorized", 401));
             return;
         }
-        const session = await prisma.session.findFirst({
-            where:{
-                token:token,
-                expiresAt:{
-                    gt:new Date()
-                }
-            }
-        })
-        if(!session){
-            next(new CustomError("Unauthorized", 401));
-            return;
-        }
         req.user = {
             id: user.id as string,
             version: user.version
