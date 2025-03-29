@@ -7,6 +7,7 @@ import { primaryRouter } from './routes';
 import { CustomError } from './types';
 import { initializeSocket } from './socket/socket';
 import { rateLimit } from 'express-rate-limit';
+import './queues/workers'
 
 const app = express();
 const httpServer = createServer(app);
@@ -18,7 +19,7 @@ const  limiter = rateLimit({
   message: "Too many requests, please try again later."
 });
 
-app.use(limiter);
+// app.use(limiter);
 app.use(logRequest);
 app.use(cors());
 app.use(express.json());

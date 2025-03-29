@@ -2,11 +2,12 @@ import { NextFunction, Request, Response } from 'express';
 import { v4 as uuidv4 } from 'uuid';
 import { prisma } from '../config';
 import { CustomError, CustomRequest } from '../types';
-import { invokeLambda } from '../services/lambda.service';
 import { Server } from 'socket.io';
 import { updatePlayerState } from '../socket/services/gameService';
 import { getGameState } from '../socket/services/gameService';
 import { handleGameEnd } from '../socket/handlers/game';
+import { runQueueEvents,submitQueueEvents } from '../queues/queues';
+import { runQueue, submitQueue } from '../queues/queues';
 
 enum ALLOWED_LANGUAGES {
   'python' = 'python',
@@ -39,19 +40,12 @@ export const handleRunCode = async (req: CustomRequest, res: Response, next: Nex
         players: { some: { id: userId } }
       }
     });
-    const contest = await prisma.contest.findFirst({
-      where: {
-        id: matchId,
-        participants: { some: { userId } }
-      }
-    });
     
-
-    if (!match && !contest) {
+    if (!match ) {
       throw new CustomError('Match or contest not found', 404);
     }
 
-    const result = await invokeLambda({
+    const job = await runQueue.add('run-code', {
       code,
       language,
       input,
@@ -60,6 +54,7 @@ export const handleRunCode = async (req: CustomRequest, res: Response, next: Nex
       userId
     });
 
+    const result = await job.waitUntilFinished(runQueueEvents);
     res.json(result);
   } catch (error) {
     next(error);
@@ -92,15 +87,8 @@ export const handleSubmitCode = async (
         matchQuestions: true
       }
     });
-    const contest = await prisma.contest.findFirst({
-      where: {
-        id: matchId,
-        participants: { some: { userId } }
-      }
-    });
-    
 
-    if (!match && !contest) {
+    if (!match) {
       throw new CustomError('Match or contest not found', 404);
     }
 
@@ -119,7 +107,7 @@ export const handleSubmitCode = async (
     let score = 0;
 
     for (const testCase of question.testCases) {
-      const result = await invokeLambda({
+      const job = await submitQueue.add('submit-code', {
         code,
         language,
         input: testCase.input,
@@ -127,6 +115,8 @@ export const handleSubmitCode = async (
         taskId: uuidv4(),
         userId
       });
+
+      const result = await job.waitUntilFinished(submitQueueEvents);
 
       if (result.error) {
         await prisma.submission.create({
@@ -162,7 +152,6 @@ export const handleSubmitCode = async (
         language,
         status: passedTests === question.testCases.length ? 'ACCEPTED' : 'WRONG_ANSWER',
         matchId: match ? matchId : null,
-        contestId: contest ? contest.id : null,
         questionId,
         userId,
         executionTime: Math.round(totalExecutionTime / question.testCases.length),
