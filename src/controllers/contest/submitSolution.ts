@@ -40,10 +40,6 @@ export const handleRunCode = async (req: CustomRequest, res: Response, next: Nex
         questions: { some: { id: questionId } }
       }
     });
-    
-    if (!contest) {
-      throw new CustomError('Contest not found or not active', 404);
-    }
 
     const job = await runQueue.add('run-code', {
       code,

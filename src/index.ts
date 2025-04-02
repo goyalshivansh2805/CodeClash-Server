@@ -19,7 +19,7 @@ const  limiter = rateLimit({
   message: "Too many requests, please try again later."
 });
 
-// app.use(limiter);
+app.use(limiter);
 app.use(logRequest);
 app.use(cors());
 app.use(express.json());
@@ -38,7 +38,7 @@ Promise.all([connectDB(), connectRedis()])
       console.log(`Server is running on port ${PORT}`);
     });
   })
-  .catch(error => {
-    console.error('Failed to connect to databases:', error);
+  .catch(error=>{
+    console.log("Failed to connect to database: ",error);
     process.exit(1);
   });
