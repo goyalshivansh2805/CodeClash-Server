@@ -237,49 +237,45 @@ const getSubmissionByContestId = async(req:CustomRequest,res:Response,next:NextF
             next(new CustomError("User not found", 404));
             return;
         }
-        const [contest,totalCount] = await Promise.all([
-            prisma.contest.findUnique({
-                where:{
-                    id:contestId
+        const [submissions, totalCount] = await Promise.all([
+            prisma.submission.findMany({
+                where: {
+                    contestId,
+                    userId: id
                 },
-            select:{
-                submissions:{
-                    where:{
-                        userId:id
+                select: {
+                    id: true,
+                    status: true,
+                    createdAt: true,
+                    language: true,
+                    question: {
+                        select: {
+                            title: true,
+                            difficulty: true
+                        }
                     },
-                    select:{
-                        id:true,
-                        status:true,
-                        createdAt:true,
-                        language:true,
-                        question:{
-                            select:{
-                                title:true,
-                                difficulty:true
-                            }
-                        },
-                        passedTestCases:true,
-                        totalTestCases:true,
-                        score:true
-                    },
-                    skip,
-                    take
+                    passedTestCases: true,
+                    totalTestCases: true,
+                    score: true
+                },
+                skip,
+                take,
+                orderBy: {
+                    createdAt: 'desc'
                 }
-            }
             }),
             prisma.submission.count({
-                where:{
+                where: {
                     contestId,
-                    userId:id
+                    userId: id
                 }
             })
         ]);
-        if(!contest){
-            next(new CustomError("Contest not found", 404));
+        if(!submissions || submissions.length === 0){
+            next(new CustomError("No submissions found for the given contest", 404));
             return;
         }
         const totalPages = Math.ceil(totalCount / pageLimit);
-        const submissions = contest.submissions.slice(skip,skip+take);
         res.status(200).json({
             success: true,
             submissions,
