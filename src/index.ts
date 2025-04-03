@@ -13,15 +13,16 @@ const app = express();
 const httpServer = createServer(app);
 export const io = initializeSocket(httpServer);
 const PORT: number = Number(process.env.PORT) || 3000;
+app.set('trust proxy', 1);
 const  limiter = rateLimit({
   windowMs: 15 * 60 * 1000,
   limit: 250,
   message: "Too many requests, please try again later."
 });
 
-app.use(limiter);
 app.use(logRequest);
 app.use(cors());
+app.use(limiter);
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use('/api/v1', primaryRouter);
