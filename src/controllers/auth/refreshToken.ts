@@ -14,14 +14,14 @@ const refreshToken = async (req:Request,res:Response,next:NextFunction) => {
     try {
         const {refreshToken} = req.body;
         if (!refreshToken) {
-            next(new CustomError("No refresh token provided", 400));
+            next(new CustomError("No refresh token provided", 401));
             return;
         }
         let decoded;
         try {
             decoded = jwt.verify(refreshToken, process.env.REFRESH_TOKEN_SECRET!) as { userId: string, version: number };                                                                                                   
         } catch (error) {
-            next(new CustomError("Invalid refresh token", 400));
+            next(new CustomError("Invalid refresh token", 401));
             return;
         }
         const user = await prisma.user.findUnique({
@@ -34,28 +34,7 @@ const refreshToken = async (req:Request,res:Response,next:NextFunction) => {
             next(new CustomError("User not found", 404));
             return;
         }
-        const session = await prisma.session.findFirst({
-            where:{
-                refreshToken:refreshToken,
-                refreshTokenExpiresAt:{
-                    gt:new Date()
-                }
-            }
-        })
-        if(!session){
-            next(new CustomError("Session not found", 404));
-            return;
-        }
         const accessToken = jwt.sign({ userId: decoded.userId,version:user.version }, process.env.ACCESS_TOKEN_SECRET!, { expiresIn: "10h" });
-        await prisma.session.update({
-            where:{
-                id:session.id
-            },
-            data:{
-                token:accessToken,
-                expiresAt:new Date(Date.now() + 10 * 60 * 60 * 1000)
-            }
-        })
         res.status(200).json({
             success: true,
             message: "Access token generated successfully",
