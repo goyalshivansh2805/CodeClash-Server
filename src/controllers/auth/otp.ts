@@ -154,32 +154,6 @@ const verifyOtp = async (req: CustomOtpRequest, res: Response, next: NextFunctio
         refreshTokenKey,
         { expiresIn: "7d" }
       );
-      const userAgent = req.headers["user-agent"];
-      const parser = new UAParser(userAgent);
-      const uaDetails = parser.getResult();
-      const forwardedFor = Array.isArray(req.headers["x-forwarded-for"]) 
-          ? req.headers["x-forwarded-for"][0] 
-          : req.headers["x-forwarded-for"];
-
-      const sessionData = {
-        userId: user.id,
-        token: accessToken,
-        expiresAt: new Date(Date.now() + 10 * 60 * 60 * 1000),
-        createdAt: new Date(),
-        updatedAt: new Date(),
-        refreshToken: refreshToken,
-        refreshTokenExpiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
-        ipAddress: forwardedFor?.split(",")[0]?.trim() || req.ip || "Unknown",
-        userAgent: userAgent || "Unknown",
-        location: forwardedFor?.split(",")[0]?.trim() || "Unknown",
-        device: String(req.headers["x-device"] || uaDetails.device?.model || "Unknown"),
-        browser: String(req.headers["x-browser"] || uaDetails.browser?.name || "Unknown"),
-        os: String(req.headers["x-os"] || uaDetails.os?.name || "Unknown"),
-      };
-
-      await prisma.session.create({
-        data:sessionData
-      })
       return { user, accessToken, refreshToken };
     });
     
