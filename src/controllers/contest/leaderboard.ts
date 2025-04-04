@@ -13,7 +13,11 @@ import { SubmissionStatus } from '@prisma/client';
 //   COMPILATION_ERROR
 // }
 
-
+interface userScore {
+  problemsSolved: number;
+  totalScore: number;
+  lastSubmissionTime: Date | null;
+}
 
 // Function to update contest leaderboard
 export const updateContestLeaderboard = async (
@@ -32,13 +36,24 @@ export const updateContestLeaderboard = async (
       where: { 
         id: contestId,
         endTime: { gte: new Date() }
-      }
+      },
+      select: { id: true,
+        questions: {
+          select: {
+            id: true,
+            score: true
+          }
+        }
+       }
     });
 
     if (!contest) {
       throw new CustomError('Contest not found or ended', 404);
     }
-
+    const participants = await prisma.contestParticipation.findMany({
+      where: { contestId },
+      select: { userId: true }
+    });
     // Get all accepted submissions grouped by user
     const submissions = await prisma.submission.groupBy({
       by: ['userId', 'questionId'],
@@ -52,23 +67,21 @@ export const updateContestLeaderboard = async (
     });
 
     // Calculate scores and update leaderboard
-    const userScores = new Map();
+    const userScores = new Map<string,userScore>(
+      participants.map(p => [p.userId, {
+        problemsSolved: 0,
+        totalScore: 0,
+        lastSubmissionTime: null
+      }])
+    );
     for (const submission of submissions) {
       const { userId, questionId } = submission;
-      if (!userScores.has(userId)) {
-        userScores.set(userId, {
-          problemsSolved: 0,
-          totalScore: 0,
-          lastSubmissionTime: null
-        });
-      }
-      
-      const question = await prisma.question.findUnique({
-        where: { id: questionId },
-        select: { score: true }
-      });
-
       const userScore = userScores.get(userId);
+      if (!userScore) continue;
+
+      const question = contest.questions.find(q => q.id === questionId);
+      if (!question) continue;
+
       userScore.problemsSolved++;
       userScore.totalScore += question?.score || 0;
       userScore.lastSubmissionTime = submission._min.createdAt;
