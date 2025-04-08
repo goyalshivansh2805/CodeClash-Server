@@ -45,7 +45,7 @@ export const handleRunCode = async (req: CustomRequest, res: Response, next: Nex
       code,
       language,
       input,
-      timeout: 5,
+      timeoutMs: 2000,
       taskId: uuidv4(),
       userId
     });
@@ -133,7 +133,7 @@ export const handleSubmitCode = async (
         code,
         language,
         input: testCase.input,
-        timeout: question.timeLimit / 1000,
+        timeoutMs: question.timeLimit,
         taskId: uuidv4(),
         userId
       });
@@ -145,7 +145,7 @@ export const handleSubmitCode = async (
           data: {
             code,
             language,
-            status: 'RUNTIME_ERROR',
+            status: result.error === 'TIME_LIMIT_EXCEEDED' ? 'TIME_LIMIT_EXCEEDED' : 'RUNTIME_ERROR',
             contestId,
             questionId,
             userId,
