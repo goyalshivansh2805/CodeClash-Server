@@ -182,41 +182,50 @@ export const handleSubmitCode = async (
 
     // If solution is accepted, update contest participation score
     if (isAccepted) {
-      await prisma.contestParticipation.update({
-        where: {
-          userId_contestId: {
-            userId,
-            contestId
-          }
-        },
-        data: {
-          score: {
-            increment: question.score
-          }
+      const userPreviousSubmission = await prisma.submission.findMany({
+        where:{
+          contestId,
+          userId,
+          questionId,
+          status:"ACCEPTED"
         }
       });
 
       // Update contest leaderboard
-      await prisma.contestLeaderboard.upsert({
-        where: {
-          contestId_userId: {
-            contestId,
-            userId
+      if(!userPreviousSubmission){
+        Promise.all([await prisma.contestParticipation.update({
+          where: {
+            userId_contestId: {
+              userId,
+              contestId
+            }
+          },
+          data: {
+            score: {
+              increment: question.score
+            }
           }
-        },
-        create: {
-          userId,
-          contestId,
-          score: question.score,
-          problemsSolved: 1,
-          lastSubmissionTime: new Date()
-        },
-        update: {
-          score: { increment: question.score },
-          problemsSolved: { increment: 1 },
-          lastSubmissionTime: new Date()
-        }
-      });
+        }),await prisma.contestLeaderboard.upsert({
+          where: {
+            contestId_userId: {
+              contestId,
+              userId
+            }
+          },
+          create: {
+            userId,
+            contestId,
+            score: question.score,
+            problemsSolved: 1,
+            lastSubmissionTime: new Date()
+          },
+          update: {
+            score: { increment: question.score },
+            problemsSolved: { increment: 1 },
+            lastSubmissionTime: new Date()
+          }
+        })])
+      }
     }
 
     res.json({
