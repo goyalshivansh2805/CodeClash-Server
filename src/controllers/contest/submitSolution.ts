@@ -152,7 +152,7 @@ export const handleSubmitCode = async (
             failedTestCase: passedTests + 1
           }
         });
-        throw new CustomError('Runtime error', 400, result.error);
+        throw new CustomError(result.error, 400, result.error);
       }
 
       totalExecutionTime += result.executionTime || 0;
