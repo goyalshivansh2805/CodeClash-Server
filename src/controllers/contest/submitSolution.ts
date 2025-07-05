@@ -192,7 +192,7 @@ export const handleSubmitCode = async (
       });
 
       // Update contest leaderboard
-      if(!userPreviousSubmission){
+      if(userPreviousSubmission.length === 0){
         Promise.all([await prisma.contestParticipation.update({
           where: {
             userId_contestId: {
