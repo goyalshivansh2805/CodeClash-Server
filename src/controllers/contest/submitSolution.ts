@@ -169,7 +169,14 @@ export const handleSubmitCode = async (
     }
 
     const isAccepted = passedTests === question.testCases.length;
-    
+    const userPreviousSubmission = await prisma.submission.findFirst({
+      where:{
+        contestId,
+        userId,
+        questionId,
+        status:"ACCEPTED"
+      }
+    });
     // Create submission record
     const submission = await prisma.submission.create({
       data: {
@@ -188,18 +195,8 @@ export const handleSubmitCode = async (
     });
 
     // If solution is accepted, update contest participation score
-    if (isAccepted) {
-      const userPreviousSubmission = await prisma.submission.findMany({
-        where:{
-          contestId,
-          userId,
-          questionId,
-          status:"ACCEPTED"
-        }
-      });
-
+    if (isAccepted && userPreviousSubmission === null) {
       // Update contest leaderboard
-      if(userPreviousSubmission.length === 0){
         Promise.all([await prisma.contestParticipation.update({
           where: {
             userId_contestId: {
@@ -232,7 +229,6 @@ export const handleSubmitCode = async (
             lastSubmissionTime: new Date()
           }
         })])
-      }
     }
 
     res.json({
