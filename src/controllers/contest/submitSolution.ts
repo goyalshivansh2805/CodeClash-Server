@@ -149,7 +149,11 @@ export const handleSubmitCode = async (
             contestId,
             questionId,
             userId,
-            failedTestCase: passedTests + 1
+            failedTestCase: passedTests + 1,
+            passedTestCases: passedTests,
+            totalTestCases: question.testCases.length,
+            executionTime: Math.round(totalExecutionTime / question.testCases.length),
+            score: 0
           }
         });
         throw new CustomError(result.error, 400, result.error);
@@ -176,7 +180,10 @@ export const handleSubmitCode = async (
         questionId,
         userId,
         executionTime: Math.round(totalExecutionTime / question.testCases.length),
-        failedTestCase
+        failedTestCase,
+        passedTestCases: passedTests,
+        totalTestCases: question.testCases.length,
+        score: isAccepted ? question.score : 0
       }
     });
 

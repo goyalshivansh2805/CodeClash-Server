@@ -18,7 +18,7 @@ export const verifySocketToken = async (
       version: number;
     };
 
-    const [user,session] = await Promise.all([
+    const [user] = await Promise.all([
       prisma.user.findUnique({
         where: { id: decoded.userId },
         select: {
@@ -27,15 +27,8 @@ export const verifySocketToken = async (
         rating: true
       }
     }),
-    prisma.session.findFirst({
-      where:{
-        token:token,
-        expiresAt:{
-          gt:new Date()
-        }
-      }
-    })]);
-    if (!user || user.version !== decoded.version || !session) {
+    ]);
+    if (!user || user.version !== decoded.version) {
       throw new Error('Authentication error');
     }
 
