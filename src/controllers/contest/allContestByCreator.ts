@@ -68,3 +68,62 @@ export const getAllContestsByCreator = async (
     next(error);
   }
 };
+
+
+export const getRegisteredContests = async (
+  req: CustomRequest,
+  res: Response,
+  next: NextFunction
+): Promise<void> => {
+  try {
+    const userId = req.user?.id;
+    if (!userId) {
+      throw new CustomError('Unauthorized', 401);
+    }
+    const page = parseInt(req.query.page as string) || 1;
+    const limit = parseInt(req.query.limit as string) || 10;
+    const skip = (page - 1) * limit;
+    const contests = await prisma.contest.findMany({
+      where: {
+        participants: {
+          some: {
+            userId: userId
+          }
+        },
+        status: {
+          in: [ContestStatus.ONGOING, ContestStatus.UPCOMING]
+        }
+      },
+      skip,
+      take: limit,
+      select: {
+        id: true,
+        title: true,
+        startTime: true,
+        endTime: true,
+        status: true,
+        _count: {
+          select: {
+            participants: true
+          }
+        }
+      },
+      orderBy: {
+        createdAt: 'desc'
+      }
+    });
+
+    res.json({
+      message: 'Contests retrieved successfully',
+      contests: contests,
+      meta: {
+        total: contests.length,
+        page,
+        limit,
+        totalPages: Math.ceil(contests.length / limit)
+      }
+    });
+  } catch (error) {
+    next(error);
+  }
+};

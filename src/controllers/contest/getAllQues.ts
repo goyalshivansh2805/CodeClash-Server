@@ -33,7 +33,14 @@ export const getAllQuestions = async (
         skip,
         take: limit
       }),
-      prisma.question.count()
+      prisma.question.count({
+        where:{
+          OR:[
+            {isAddedByAdmin: true},
+            {creatorId: req.user?.id}
+          ]
+        }
+      })
     ]);
 
     res.status(200).json({

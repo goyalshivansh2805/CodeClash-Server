@@ -46,9 +46,9 @@ export const createQuestion = async (
     }
 
     // Validate test cases
-    if (!Array.isArray(testCases) || testCases.length < 2) {
-      throw new CustomError("At least 2 test cases are required", 400);
-    }
+    // if (!Array.isArray(testCases) || testCases.length < 2) {
+    //   throw new CustomError("At least 2 test cases are required", 400);
+    // }
 
     const question = await prisma.question.create({
       data: {
@@ -66,7 +66,7 @@ export const createQuestion = async (
         },
         isAddedByAdmin: true,
         testCases: {
-          create: testCases.map(tc => ({
+          create: testCases.map((tc: any) => ({
             input: tc.input,
             output: tc.output,
             isHidden: tc.isHidden || false,
