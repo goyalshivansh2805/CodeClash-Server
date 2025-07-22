@@ -207,4 +207,83 @@ const getUserDetailsInContest = async (req: CustomRequest, res: Response, next: 
     next(error);
   }
 };
-export { getAllContests, getLeaderboardForContest, getUserDetailsInContest };
+
+
+const kickUserFromContest = async (req: CustomRequest, res: Response, next: NextFunction) => {
+  try {
+    const userId = req.user?.id;
+    const contestId = req.params.contestId;
+    const participantId = req.params.participantId;
+    if (!userId || !contestId || !participantId) {
+      throw new CustomError("Contest ID and participant ID are required", 400);
+    }
+    const user = await prisma.user.findUnique({
+      where: { id: userId }
+    }); 
+    if (!user?.isAdmin) {
+      throw new CustomError("Unauthorized: Admin access required", 403);
+    }
+    const [contest,participant] = await Promise.all([prisma.contest.findUnique({
+      where: { id: contestId }
+    }),
+    prisma.user.findUnique({
+      where: { id: participantId }
+    })
+  ]); 
+    if (!contest) {
+      throw new CustomError("Contest not found", 404);
+    }
+    if(!participant) {
+      throw new CustomError("Participant not found", 404);
+    }
+    await prisma.contestLeaderboard.delete({
+      where: { contestId_userId: { contestId, userId: participantId } },
+    });
+    res.status(200).json({message: "User kicked from contest"});
+
+  } catch (error) {
+    next(error);
+  }
+};
+
+const banUserFromContest = async (req: CustomRequest, res: Response, next: NextFunction) => {
+  try {
+    const userId = req.user?.id;
+    const contestId = req.params.contestId;
+    const participantId = req.params.participantId;
+    if (!userId || !contestId || !participantId) {
+      throw new CustomError("Contest ID and participant ID are required", 400);
+    }
+    const user = await prisma.user.findUnique({
+      where: { id: userId }
+    }); 
+    if (!user?.isAdmin) {
+      throw new CustomError("Unauthorized: Admin access required", 403);
+    }
+    const [contest,participant] = await Promise.all([prisma.contest.findUnique({
+      where: { id: contestId }
+    }),
+    prisma.user.findUnique({
+      where: { id: participantId }
+    })
+  ]); 
+    if (!contest) {
+      throw new CustomError("Contest not found", 404);
+    }
+    if(!participant) {
+      throw new CustomError("Participant not found", 404);
+    }
+    await prisma.contestLeaderboard.delete({
+      where: { contestId_userId: { contestId, userId: participantId } },
+    });
+    await prisma.contestParticipation.update({
+      where: { userId_contestId: { userId: participantId, contestId } },
+      data: {
+        isBanned: true      }
+    });
+    res.status(200).json({message: "User banned from contest"});
+  } catch (error) {
+    next(error);
+  }
+};
+export { getAllContests, getLeaderboardForContest, getUserDetailsInContest, kickUserFromContest, banUserFromContest };

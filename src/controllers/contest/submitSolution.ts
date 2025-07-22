@@ -117,7 +117,9 @@ export const handleSubmitCode = async (
     if (!participation) {
       throw new CustomError('You have not joined this contest', 403);
     }
-
+    if(participation.isBanned) {
+      throw new CustomError('You have been banned from this contest', 403);
+    }
     const question = contest.questions[0];
     if (!question) {
       throw new CustomError('Question not found', 404);
