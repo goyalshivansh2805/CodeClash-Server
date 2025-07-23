@@ -8,7 +8,6 @@ const router = Router();
 router.use("/health", healthRoute);
 router.use("/auth", authRoute);
 
-router.get('/contest/:contestId', getContestDetails);
 router.use("/user", verifyToken, userRoute);
 router.use("/match", verifyToken, matchRoute);
 router.use("/admin", verifyToken, adminRoute);

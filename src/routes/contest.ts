@@ -39,7 +39,7 @@ router.get('/questions/all', getAllQuestions);
 
 router.get('/my-contests' , getAllContestsByCreator)
 router.get('/my-contests/registered', getRegisteredContests);
-// router.get('/:contestId', getContestDetails); Moved to route.ts so that it can be used auth free
+router.get('/:contestId', getContestDetails);
 router.put('/:contestId', updateContest);
 router.delete('/:contestId', deleteContest);
 
