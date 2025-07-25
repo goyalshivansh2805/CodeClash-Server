@@ -198,54 +198,81 @@ export const getContestDetails = async (
 
       case ContestStatus.ENDED: {
         // everyone can see full question details after contest ends
-        const contestData = await prisma.contest.findUnique({
-          where: { id: contestId },
-          select: {
-            questions: {
-              select: {
-                id: true,
-                title: true,
-                description: true,
-                inputFormat: true,
-                outputFormat: true,
-                constraints: true,
-                difficulty: true,
-                rating: true,
-                score: true,
-                timeLimit: true,
-                memoryLimit: true,
-                testCases: {
-                  select: {
-                    input: true,
-                    output: true,
-                    isHidden: true
-                  }
-                }
-              }
-            },
-            leaderboard: {
-              orderBy: {
-                score: 'desc'
-              },
-              take: 10,
-              include: {
-                user: {
-                  select: {
-                    username: true,
-                    rating: true
+        const [topPerformers, userEntry, contestData] = await Promise.all([
+          prisma.contestLeaderboard.findMany({
+            where: { contestId },
+            orderBy: [
+              { score: 'desc' },
+              { problemsSolved: 'desc' },
+              { lastSubmissionTime: 'asc' }
+            ],
+            take: 10,
+            select: {
+              userId: true,
+              score: true,
+              problemsSolved: true,
+              lastSubmissionTime: true,
+              rank: true,
+              user: { select: { username: true, rating: true } }
+            }
+          }),
+          prisma.contestLeaderboard.findUnique({
+            where: { contestId_userId: { contestId, userId } },
+            include: {
+              user: { select: { username: true, rating: true } }
+            }
+          }),
+          prisma.contest.findUnique({
+            where: { id: contestId },
+            select: {
+              questions: {
+                select: {
+                  id: true,
+                  title: true,
+                  description: true,
+                  inputFormat: true,
+                  outputFormat: true,
+                  constraints: true,
+                  difficulty: true,
+                  rating: true,
+                  score: true,
+                  timeLimit: true,
+                  memoryLimit: true,
+                  testCases: {
+                    where: {
+                      isHidden: false
+                    },
+                    select: {
+                      input: true,
+                      output: true
+                    }
                   }
                 }
               }
             }
+          })
+        ]);
+
+        // Remove userEntry if already in topPerformers
+        let performers = topPerformers;
+        if (userEntry) {
+          const isInTop = topPerformers.some(e => e.userId === userEntry.userId);
+          if (!isInTop) {
+            performers = [...topPerformers, userEntry];
           }
-        });
+        }
+
+        // Ensure no duplicates and max 11 entries
+        performers = performers.filter((entry, idx, arr) =>
+          arr.findIndex(e => e.userId === entry.userId) === idx
+        );
 
         res.json({
           message: 'Contest details retrieved successfully',
           contest: {
             ...baseResponse,
             questions: contestData?.questions,
-            topPerformers: contestData?.leaderboard
+            topPerformers: performers
           }
         });
         break;
