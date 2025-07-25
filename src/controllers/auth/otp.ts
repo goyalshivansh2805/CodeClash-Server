@@ -147,12 +147,12 @@ const verifyOtp = async (req: CustomOtpRequest, res: Response, next: NextFunctio
       const accessToken = jwt.sign(
         { userId: user.id,version:user.version },
         accessTokenKey,
-        { expiresIn: "10h" }
+        { expiresIn: "7d" }
       );
       const refreshToken = jwt.sign(
         { userId: user.id ,version:user.version},
         refreshTokenKey,
-        { expiresIn: "7d" }
+        { expiresIn: "30d" }
       );
       return { user, accessToken, refreshToken };
     });

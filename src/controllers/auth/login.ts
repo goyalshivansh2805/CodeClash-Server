@@ -46,12 +46,12 @@ const loginUser = async (req: Request, res: Response, next: NextFunction) => {
       const accessToken = jwt.sign(
         { userId: user.id,version:user.version },
         accessTokenKey,
-        { expiresIn: "10h" }
+        { expiresIn: "7d" }
       );
       const refreshToken = jwt.sign(
         { userId: user.id ,version:user.version},
         refreshTokenKey,
-        { expiresIn: "7d" }
+        { expiresIn: "30d" }
       );
 
       res.status(200).send({

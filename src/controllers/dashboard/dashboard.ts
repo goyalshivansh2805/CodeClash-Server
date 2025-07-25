@@ -40,12 +40,17 @@ const getLeaderboard = async (req: CustomRequest, res: Response, next: NextFunct
                 skip,
                 take: limit
             }),
-            prisma.user.count(),
+            prisma.user.count({
+                where:{
+                    isVerified:true
+                }
+            }),
             prisma.user.count({
                 where: {
                     wins: {
                         gt: user.wins || 0
-                    }
+                    },
+                    isVerified:true
                 }
             })
         ]);

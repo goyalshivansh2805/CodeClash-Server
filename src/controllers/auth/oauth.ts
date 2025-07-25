@@ -82,12 +82,12 @@ const generateTokens =async (req:Request,res:Response,next:NextFunction) => {
       const accessToken = jwt.sign(
         { userId: user.id,version:user.version },
         accessTokenKey,
-        { expiresIn: "1h" }
+        { expiresIn: "7d" }
       );
       const refreshToken = jwt.sign(
         { userId: user.id ,version:user.version},
         refreshTokenKey,
-        { expiresIn: "7d" }
+        { expiresIn: "30d" }
       );
       const userAgent = req.headers["user-agent"];
       const parser = new UAParser(userAgent);
