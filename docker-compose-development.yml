@@ -18,7 +18,8 @@ services:
     volumes:
       - .:/app
       - /app/node_modules
-
+    networks:
+      - codeclash-network
   db:
     image: postgres:15-alpine
     ports:
@@ -36,7 +37,8 @@ services:
       interval: 2s
       timeout: 1s
       retries: 5
-
+    networks:
+      - codeclash-network
   pgadmin:
     image: dpage/pgadmin4:latest
     ports:
@@ -49,6 +51,8 @@ services:
       - db
     volumes:
       - ./servers.json:/pgadmin4/servers.json
+    networks:
+      - codeclash-network
   redis:
     image: redis:latest
     container_name: codeclash-server-redis
@@ -61,6 +65,8 @@ services:
       interval: 5s
       timeout: 3s
       retries: 5
+    networks:
+      - codeclash-network
   redis-commander:
     image: rediscommander/redis-commander:latest
     container_name: codeclash-server-redis-commander
@@ -71,6 +77,12 @@ services:
     depends_on:
       redis:
         condition: service_healthy
+    networks:
+      - codeclash-network
 volumes:
   postgres_data:
   redis_data:
+
+networks:
+  codeclash-network:
+    external: true
