@@ -30,21 +30,7 @@ export const handleRunCode = async (req: CustomRequest, res: Response, next: Nex
     if(!ALLOWED_LANGUAGES[language as keyof typeof ALLOWED_LANGUAGES]){
       throw new CustomError('Invalid language', 400);
     }
-    const matchId = req.params.matchId;
-
-
-    const match = await prisma.match.findFirst({
-      where: { 
-        id: matchId,
-        status: 'ONGOING',
-        players: { some: { id: userId } }
-      }
-    });
     
-    if (!match ) {
-      throw new CustomError('Match or contest not found', 404);
-    }
-
     const job = await runQueue.add('run-code', {
       code,
       language,
