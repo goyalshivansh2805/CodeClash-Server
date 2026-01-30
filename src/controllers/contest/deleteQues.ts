@@ -13,8 +13,7 @@ export const deleteQuestion = async (
       throw new CustomError('Unauthorized', 401);
     }
 
-    // const { contestId, questionId } = req.params;
-    const { contestId, questionId } = req.body; 
+    const { contestId, questionId } = req.body;
 
 
     if (!contestId || !questionId) {
@@ -60,43 +59,26 @@ export const deleteQuestion = async (
       throw new CustomError('Cannot delete question with existing submissions', 400);
     }
 
-    // delete question in a transaction
-    await prisma.$transaction(async (prisma) => {
-      // first disconnect the question from the contest
-      await prisma.contest.update({
-        where: {
-          id: contestId
-        },
-        data: {
-          questions: {
-            disconnect: {
-              id: questionId
-            }
+    // disconnect the question from the contest
+    await prisma.contest.update({
+      where: {
+        id: contestId
+      },
+      data: {
+        questions: {
+          disconnect: {
+            id: questionId
           }
         }
-      });
-
-      // then delete the test cases
-      await prisma.testCase.deleteMany({
-        where: {
-          questionId
-        }
-      });
-
-      // finally delete the question
-      await prisma.question.delete({
-        where: {
-          id: questionId
-        }
-      });
+      }
     });
 
-     res.json({
-      message: 'Question deleted successfully from contest',
+    res.json({
+      message: 'Question removed successfully from contest',
       data: {
         contestId,
         questionId,
-        deletedAt: new Date()
+        removedAt: new Date()
       }
     });
 
