@@ -147,8 +147,8 @@ export const addQuestionToContestFromLibrary = async (
     if (!userId) {
       throw new CustomError('Unauthorized', 401);
     }
-    const { questionId, contestId } = req.body;
-    if (!questionId || !contestId) {
+    const { questionId, contestId: contestIdParam } = req.body;
+    if (!questionId || !contestIdParam) {
       throw new CustomError('Missing required fields', 400);
     }
     const question = await prisma.question.findUnique({
@@ -159,10 +159,11 @@ export const addQuestionToContestFromLibrary = async (
     if (!question) {
       throw new CustomError('Question not found', 404);
     }
+
+    const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(contestIdParam);
+
     const contest = await prisma.contest.findUnique({
-      where: {
-        id: contestId
-      },
+      where: isUUID ? { id: contestIdParam } : { slug: contestIdParam },
       include: {
         questions: true
       }
@@ -179,6 +180,9 @@ export const addQuestionToContestFromLibrary = async (
     if(contest.questions.find((q) => q.id === questionId)) {
       throw new CustomError('Question already exists in contest', 400);
     }
+
+    const contestId = contest.id;
+
     await prisma.contest.update({
       where: {
         id: contestId
@@ -201,8 +205,8 @@ export const getContestQuestions = async (
   next: NextFunction
 ): Promise<void> => {
   try {
-    const { contestId } = req.params;
-    if (!contestId) {
+    const { contestId: contestIdParam } = req.params;
+    if (!contestIdParam) {
       throw new CustomError('Contest ID is missing', 400);
     }
     const userId = req.user?.id;
@@ -215,9 +219,12 @@ export const getContestQuestions = async (
     if (!user?.isAdmin) {
       throw new CustomError('Unauthorized', 401);
     }
+
+    const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(contestIdParam);
+
     const contest = await prisma.contest.findFirst({
       where: {
-        id: contestId,
+        ...(isUUID ? { id: contestIdParam } : { slug: contestIdParam }),
         participants: {
           some: {
             userId
@@ -229,6 +236,8 @@ export const getContestQuestions = async (
     if (!contest) {
       throw new CustomError('Contest not found', 404);
     }
+
+    const contestId = contest.id;
 
     const questions = await prisma.question.findMany({
       where: {

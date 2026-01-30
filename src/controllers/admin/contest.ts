@@ -64,7 +64,7 @@ const getAllContests = async (req: CustomRequest, res: Response, next: NextFunct
 const getLeaderboardForContest = async (req: CustomRequest, res: Response, next: NextFunction) => {
   try {
     const userId = req.user?.id;
-    const contestId = req.params.contestId;
+    const contestIdParam = req.params.contestId;
     const page = parseInt(req.query.page as string) || 1;
     const limit = parseInt(req.query.limit as string) || 10;
     const skip = (page - 1) * limit;
@@ -77,12 +77,18 @@ const getLeaderboardForContest = async (req: CustomRequest, res: Response, next:
     if (!user?.isAdmin) {
       throw new CustomError("Unauthorized: Admin access required", 403);
     }
+
+    const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(contestIdParam);
+
     const contest = await prisma.contest.findUnique({
-      where: { id: contestId }
+      where: isUUID ? { id: contestIdParam } : { slug: contestIdParam }
     });
     if (!contest) {
       throw new CustomError("Contest not found", 404);
     }
+
+    const contestId = contest.id;
+
     const leaderboard = await prisma.contestLeaderboard.findMany({
       where: {
         contestId: contestId
@@ -125,9 +131,9 @@ const getLeaderboardForContest = async (req: CustomRequest, res: Response, next:
 const getUserDetailsInContest = async (req: CustomRequest, res: Response, next: NextFunction) => {
   try {
     const userId = req.user?.id;
-    const contestId = req.params.contestId;
+    const contestIdParam = req.params.contestId;
     const participantId = req.params.participantId;
-    if (!contestId || !participantId) {
+    if (!contestIdParam || !participantId) {
       throw new CustomError("Contest ID and participant ID are required", 400);
     }
     const page = parseInt(req.query.page as string) || 1;
@@ -142,12 +148,18 @@ const getUserDetailsInContest = async (req: CustomRequest, res: Response, next: 
     if (!user?.isAdmin) {
       throw new CustomError("Unauthorized: Admin access required", 403);
     }
+
+    const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(contestIdParam);
+
     const contest = await prisma.contest.findUnique({
-      where: { id: contestId }
+      where: isUUID ? { id: contestIdParam } : { slug: contestIdParam }
     });
     if (!contest) {
       throw new CustomError("Contest not found", 404);
     }
+
+    const contestId = contest.id;
+
     const [userDetails,contestSubmissions] = await Promise.all([
       prisma.user.findFirst({
       where: {
@@ -212,9 +224,9 @@ const getUserDetailsInContest = async (req: CustomRequest, res: Response, next: 
 const kickUserFromContest = async (req: CustomRequest, res: Response, next: NextFunction) => {
   try {
     const userId = req.user?.id;
-    const contestId = req.params.contestId;
+    const contestIdParam = req.params.contestId;
     const participantId = req.params.participantId;
-    if (!userId || !contestId || !participantId) {
+    if (!userId || !contestIdParam || !participantId) {
       throw new CustomError("Contest ID and participant ID are required", 400);
     }
     const user = await prisma.user.findUnique({
@@ -223,8 +235,11 @@ const kickUserFromContest = async (req: CustomRequest, res: Response, next: Next
     if (!user?.isAdmin) {
       throw new CustomError("Unauthorized: Admin access required", 403);
     }
+
+    const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(contestIdParam);
+
     const [contest,participant] = await Promise.all([prisma.contest.findUnique({
-      where: { id: contestId }
+      where: isUUID ? { id: contestIdParam } : { slug: contestIdParam }
     }),
     prisma.user.findUnique({
       where: { id: participantId }
@@ -236,6 +251,9 @@ const kickUserFromContest = async (req: CustomRequest, res: Response, next: Next
     if(!participant) {
       throw new CustomError("Participant not found", 404);
     }
+
+    const contestId = contest.id;
+
     await prisma.contestLeaderboard.delete({
       where: { contestId_userId: { contestId, userId: participantId } },
     });
@@ -249,9 +267,9 @@ const kickUserFromContest = async (req: CustomRequest, res: Response, next: Next
 const banUserFromContest = async (req: CustomRequest, res: Response, next: NextFunction) => {
   try {
     const userId = req.user?.id;
-    const contestId = req.params.contestId;
+    const contestIdParam = req.params.contestId;
     const participantId = req.params.participantId;
-    if (!userId || !contestId || !participantId) {
+    if (!userId || !contestIdParam || !participantId) {
       throw new CustomError("Contest ID and participant ID are required", 400);
     }
     const user = await prisma.user.findUnique({
@@ -260,8 +278,11 @@ const banUserFromContest = async (req: CustomRequest, res: Response, next: NextF
     if (!user?.isAdmin) {
       throw new CustomError("Unauthorized: Admin access required", 403);
     }
+
+    const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(contestIdParam);
+
     const [contest,participant] = await Promise.all([prisma.contest.findUnique({
-      where: { id: contestId }
+      where: isUUID ? { id: contestIdParam } : { slug: contestIdParam }
     }),
     prisma.user.findUnique({
       where: { id: participantId }
@@ -273,6 +294,9 @@ const banUserFromContest = async (req: CustomRequest, res: Response, next: NextF
     if(!participant) {
       throw new CustomError("Participant not found", 404);
     }
+
+    const contestId = contest.id;
+
     await prisma.contestLeaderboard.delete({
       where: { contestId_userId: { contestId, userId: participantId } },
     });

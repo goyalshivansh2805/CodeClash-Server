@@ -218,16 +218,31 @@ const getSubmissionByContestId = async(req:CustomRequest,res:Response,next:NextF
             next(new CustomError("User not found", 404));
             return;
         }
-        const contestId = req.params.id;
+        const contestIdParam = req.params.id;
         const {page = 1,limit = 10} = req.query;
         const pageNumber = parseInt(page as string);
         const pageLimit = parseInt(limit as string);
         const skip = (pageNumber - 1) * pageLimit;
         const take = pageLimit;
-        if(!contestId){
+        if(!contestIdParam){
             next(new CustomError("Contest ID is required", 400));
             return;
         }
+
+        const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(contestIdParam);
+
+        const contest = await prisma.contest.findUnique({
+            where: isUUID ? { id: contestIdParam } : { slug: contestIdParam },
+            select: { id: true }
+        });
+
+        if (!contest) {
+            next(new CustomError("Contest not found", 404));
+            return;
+        }
+
+        const contestId = contest.id;
+
         const user = await prisma.user.findUnique({
             where:{
                 id
@@ -299,13 +314,13 @@ const getSubmissionByQuestionIdAndContestId = async(req:CustomRequest,res:Respon
             return;
         }
         const questionId = req.params.questionId;
-        const contestId = req.params.contestId;
+        const contestIdParam = req.params.contestId;
         const {page = 1,limit = 10} = req.query;
         const pageNumber = parseInt(page as string);
         const pageLimit = parseInt(limit as string);
         const skip = (pageNumber - 1) * pageLimit;
         const take = pageLimit;         
-        if(!questionId || !contestId){
+        if(!questionId || !contestIdParam){
             next(new CustomError("Question ID and Contest ID are required", 400));
             return;
         }
@@ -318,6 +333,9 @@ const getSubmissionByQuestionIdAndContestId = async(req:CustomRequest,res:Respon
             next(new CustomError("User not found", 404));
             return;
         }
+
+        const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(contestIdParam);
+
         const [question,contest] = await Promise.all([
             prisma.question.findUnique({
                 where:{
@@ -325,15 +343,15 @@ const getSubmissionByQuestionIdAndContestId = async(req:CustomRequest,res:Respon
                 }
             }),
             prisma.contest.findUnique({
-                where:{
-                    id:contestId
-                }
+                where: isUUID ? { id: contestIdParam } : { slug: contestIdParam }
             })
         ])
         if(!question || !contest){
             next(new CustomError("Question or Contest not found", 404));
             return;
         }
+
+        const contestId = contest.id;
         const [submissions,totalCount] = await Promise.all([
             prisma.submission.findMany({
                 where:{

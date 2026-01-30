@@ -13,17 +13,19 @@ export const deleteQuestion = async (
       throw new CustomError('Unauthorized', 401);
     }
 
-    const { contestId, questionId } = req.body;
+    const { contestId: contestIdParam, questionId } = req.body;
 
 
-    if (!contestId || !questionId) {
+    if (!contestIdParam || !questionId) {
       throw new CustomError('Contest ID and Question ID are required', 400);
     }
+
+    const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(contestIdParam);
 
     // check if contest exists and user is the creator
     const contest = await prisma.contest.findFirst({
       where: {
-        id: contestId,
+        ...(isUUID ? { id: contestIdParam } : { slug: contestIdParam }),
         creatorId: userId,
         questions: {
           some: {
@@ -58,6 +60,8 @@ export const deleteQuestion = async (
     if (contest.submissions.length > 0) {
       throw new CustomError('Cannot delete question with existing submissions', 400);
     }
+
+    const contestId = contest.id;
 
     // disconnect the question from the contest
     await prisma.contest.update({

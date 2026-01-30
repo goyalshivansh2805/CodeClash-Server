@@ -34,7 +34,7 @@ export const updateQuestion = async (
     
     const {
       questionId,
-      contestId,
+      contestId: contestIdParam,
       ...updateData
     } = req.body as UpdateQuestionBody;
 
@@ -51,10 +51,12 @@ export const updateQuestion = async (
     }
 
     // If contestId is provided, verify contest constraints
-    if (contestId) {
+    if (contestIdParam) {
+      const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(contestIdParam);
+
       const contest = await prisma.contest.findFirst({
         where: {
-          id: contestId,
+          ...(isUUID ? { id: contestIdParam } : { slug: contestIdParam }),
           creatorId: userId,
           questions: {
             some: {

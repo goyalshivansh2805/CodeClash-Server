@@ -18,7 +18,7 @@ export const handleRunCode = async (req: CustomRequest, res: Response, next: Nex
   try {
     const { code, language, input } = req.body;
     const userId = req.user?.id;
-    const contestId = req.params.contestId;
+    const contestIdParam = req.params.contestId;
     const questionId = req.params.questionId;
 
     if (!userId) {
@@ -31,15 +31,23 @@ export const handleRunCode = async (req: CustomRequest, res: Response, next: Nex
       throw new CustomError('Invalid language', 400);
     }
 
+    const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(contestIdParam);
+
     // Check if contest exists and is ongoing
     const contest = await prisma.contest.findFirst({
       where: { 
-        id: contestId,
+        ...(isUUID ? { id: contestIdParam } : { slug: contestIdParam }),
         status: 'ONGOING',
         participants: { some: { userId } },
         questions: { some: { id: questionId } }
       }
     });
+
+    if (!contest) {
+      throw new CustomError('Contest not found or not active', 404);
+    }
+
+    const contestId = contest.id;
 
     const job = await runQueue.add('run-code', {
       code,
@@ -64,7 +72,7 @@ export const handleSubmitCode = async (
 ): Promise<void> => {
   try {
     const { code, language } = req.body;
-    const contestId = req.params.contestId;
+    const contestIdParam = req.params.contestId;
     const questionId = req.params.questionId;
     const userId = req.user?.id;
 
@@ -76,14 +84,16 @@ export const handleSubmitCode = async (
       throw new CustomError('Invalid language', 400);
     }
 
-    if (!contestId || !questionId) {
+    if (!contestIdParam || !questionId) {
       throw new CustomError('Contest ID and Question ID are required', 400);
     }
+
+    const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(contestIdParam);
 
     // Check if contest exists and is ongoing
     const contest = await prisma.contest.findFirst({
       where: { 
-        id: contestId,
+        ...(isUUID ? { id: contestIdParam } : { slug: contestIdParam }),
         startTime: { lte: new Date() },
         endTime: { gte: new Date() },
         questions: { some: { id: questionId } }
@@ -103,6 +113,8 @@ export const handleSubmitCode = async (
     if (!contest) {
       throw new CustomError('Contest not found or not active', 404);
     }
+
+    const contestId = contest.id;
 
     // Check if user has joined the contest
     const participation = await prisma.contestParticipation.findUnique({
