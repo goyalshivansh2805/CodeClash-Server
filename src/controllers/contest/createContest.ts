@@ -1,9 +1,11 @@
 import { NextFunction, Response } from 'express';
 import { prisma } from '../../config';
 import { CustomError, CustomRequest } from '../../types';
+import { generateSlug } from '../../utility/slugGenerator';
 
 interface CreateContestBody {
   title: string;
+  slug?: string;
   description?: string;
   startTime: string;
   endTime: string;
@@ -28,6 +30,7 @@ export const createContest = async (
 
     const {
       title,
+      slug: providedSlug,
       description,
       startTime,
       endTime,
@@ -58,6 +61,25 @@ export const createContest = async (
       throw new CustomError('Start time must be in the future', 400);
     }
 
+    // Generate or validate slug
+    let slug = providedSlug ? generateSlug(providedSlug) : generateSlug(title);
+
+    // Check for uniqueness
+    let existingContest = await prisma.contest.findUnique({ where: { slug } });
+    if (existingContest) {
+      if (providedSlug) {
+        throw new CustomError('Slug already exists', 409);
+      }
+      // If auto-generated, append suffix
+      let counter = 1;
+      const originalSlug = slug;
+      while (existingContest) {
+        slug = `${originalSlug}-${counter}`;
+        existingContest = await prisma.contest.findUnique({ where: { slug } });
+        counter++;
+      }
+    }
+
     const questions = await prisma.question.findMany({
       where: {
         id: {
@@ -73,6 +95,7 @@ export const createContest = async (
     const contest = await prisma.contest.create({
       data: {
         title,
+        slug,
         description,
         startTime: startDateTime,
         endTime: endDateTime,

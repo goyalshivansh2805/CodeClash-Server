@@ -21,14 +21,15 @@ export const getContestDetails = async (
 
     const now = new Date();
 
+    const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(contestId);
+
     // base contest query with common fields
     const contest = await prisma.contest.findUnique({
-      where: {
-        id: contestId
-      },
+      where: isUUID ? { id: contestId } : { slug: contestId },
       select: {
         id: true,
         title: true,
+        slug: true,
         description: true,
         startTime: true,
         endTime: true,
@@ -88,7 +89,7 @@ export const getContestDetails = async (
     // udate status if changed
     if (status !== contest.status) {
       await prisma.contest.update({
-        where: { id: contestId },
+        where: { id: contest.id },
         data: { status }
       });
     }
@@ -97,6 +98,7 @@ export const getContestDetails = async (
     const baseResponse = {
       id: contest.id,
       title: contest.title,
+      slug: contest.slug,
       description: contest.description,
       startTime: contest.startTime,
       endTime: contest.endTime,
@@ -121,7 +123,7 @@ export const getContestDetails = async (
         // for upcoming contests, only creator can see questions with IDs
         if (contest.creatorId === userId) {
           const questions = await prisma.contest.findUnique({
-            where: { id: contestId },
+            where: { id: contest.id },
             select: {
               questions: {
                 select: {
@@ -150,7 +152,7 @@ export const getContestDetails = async (
       case ContestStatus.ONGOING: {
         // all participants can see question details with IDs during contest
         const contestData = await prisma.contest.findUnique({
-          where: { id: contestId },
+          where: { id: contest.id },
           select: {
             questions: {
               select: {
@@ -173,7 +175,7 @@ export const getContestDetails = async (
         const submissionStats = await prisma.submission.groupBy({
           by: ['questionId', 'status'],
           where: {
-            contestId,
+            contestId: contest.id,
             userId
           },
           _count: true
@@ -200,7 +202,7 @@ export const getContestDetails = async (
         // everyone can see full question details after contest ends
         const [topPerformers, userEntry, contestData] = await Promise.all([
           prisma.contestLeaderboard.findMany({
-            where: { contestId },
+            where: { contestId: contest.id },
             orderBy: [
               { score: 'desc' },
               { problemsSolved: 'desc' },
@@ -217,13 +219,13 @@ export const getContestDetails = async (
             }
           }),
           prisma.contestLeaderboard.findUnique({
-            where: { contestId_userId: { contestId, userId } },
+            where: { contestId_userId: { contestId: contest.id, userId } },
             include: {
               user: { select: { username: true, rating: true } }
             }
           }),
           prisma.contest.findUnique({
-            where: { id: contestId },
+            where: { id: contest.id },
             select: {
               questions: {
                 select: {

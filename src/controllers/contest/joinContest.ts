@@ -18,11 +18,12 @@ export const joinContest = async (
       throw new CustomError('Contest ID is required', 400);
     }
 
+    // Check for UUID format
+    const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(contestId);
+
     // Check if contest exists and is public
     const contest = await prisma.contest.findUnique({
-      where: {
-        id: contestId
-      }
+      where: isUUID ? { id: contestId } : { slug: contestId }
     });
 
     if (!contest) {
@@ -43,7 +44,7 @@ export const joinContest = async (
       where: {
         userId_contestId: {
           userId,
-          contestId
+          contestId: contest.id
         }
       }
     });
@@ -75,8 +76,9 @@ export const joinContest = async (
     res.status(201).json({
       message: 'Successfully joined the contest',
       data: {
-        contestId,
+        contestId: contest.id,
         contestTitle: participation.contest.title,
+        contestSlug: participation.contest.slug,
         startTime: participation.contest.startTime,
         endTime: participation.contest.endTime,
         joinedAt: participation.joinedAt
