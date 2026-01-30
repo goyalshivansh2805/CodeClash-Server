@@ -11,21 +11,24 @@ export const startContest = async (
 ): Promise<void> => {
   try {
     const userId = req.user?.id;
-    const { contestId } = req.params;
+    const { contestId: contestIdParam } = req.params;
 
     if (!userId) {
       throw new CustomError('Unauthorized', 401);
     }
 
-    const contest = await prisma.contest.findFirst({
-      where: {
-        id: contestId,
-        creatorId: userId
-      }
+    const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(contestIdParam);
+
+    const contest = await prisma.contest.findUnique({
+      where: isUUID ? { id: contestIdParam } : { slug: contestIdParam }
     });
 
     if (!contest) {
-      throw new CustomError('Contest not found or unauthorized', 404);
+      throw new CustomError('Contest not found', 404);
+    }
+
+    if (contest.creatorId !== userId) {
+      throw new CustomError('Unauthorized', 403);
     }
 
     if (contest.status !== ContestStatus.UPCOMING) {
@@ -33,7 +36,7 @@ export const startContest = async (
     }
 
     const now = new Date();
-    
+
     // if (now < contest.startTime) {
     //   throw new CustomError('Cannot start contest before scheduled start time', 400);
     // }
@@ -63,21 +66,24 @@ export const endContest = async (
 ): Promise<void> => {
   try {
     const userId = req.user?.id;
-    const { contestId } = req.params;
+    const { contestId: contestIdParam } = req.params;
 
     if (!userId) {
       throw new CustomError('Unauthorized', 401);
     }
 
-    const contest = await prisma.contest.findFirst({
-      where: {
-        id: contestId,
-        creatorId: userId
-      }
+    const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(contestIdParam);
+
+    const contest = await prisma.contest.findUnique({
+      where: isUUID ? { id: contestIdParam } : { slug: contestIdParam }
     });
 
     if (!contest) {
-      throw new CustomError('Contest not found or unauthorized', 404);
+      throw new CustomError('Contest not found', 404);
+    }
+
+    if (contest.creatorId !== userId) {
+      throw new CustomError('Unauthorized', 403);
     }
 
     if (contest.status !== ContestStatus.ONGOING) {
@@ -95,13 +101,13 @@ export const endContest = async (
 
     // update final leaderboard
     await prisma.contestLeaderboard.findMany({
-      where: { contestId },
+      where: { contestId: contest.id },
       orderBy: [
         { score: 'desc' },
         { problemsSolved: 'desc' },
         { lastSubmissionTime: 'asc' }
       ]
-    }).then(entries => 
+    }).then(entries =>
       Promise.all(entries.map((entry, index) =>
         prisma.contestLeaderboard.update({
           where: { id: entry.id },
@@ -125,10 +131,12 @@ export const getContestStatus = async (
   next: NextFunction
 ): Promise<void> => {
   try {
-    const { contestId } = req.params;
+    const { contestId: contestIdParam } = req.params;
+
+    const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(contestIdParam);
 
     const contest = await prisma.contest.findUnique({
-      where: { id: contestId },
+      where: isUUID ? { id: contestIdParam } : { slug: contestIdParam },
       select: {
         status: true,
         startTime: true,

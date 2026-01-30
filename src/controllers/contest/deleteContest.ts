@@ -13,15 +13,15 @@ export const deleteContest = async (
       throw new CustomError('User not found', 401);
     }
 
-    const contestId = req.params.contestId;
-    if (!contestId) {
+    const contestIdParam = req.params.contestId;
+    if (!contestIdParam) {
       throw new CustomError('Contest ID is required', 400);
     }
 
-    const contest = await prisma.contest.findFirst({
-      where: {
-        id: contestId
-      },
+    const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(contestIdParam);
+
+    const contest = await prisma.contest.findUnique({
+      where: isUUID ? { id: contestIdParam } : { slug: contestIdParam },
       include: {
         participants: true,
         submissions: true
@@ -52,7 +52,7 @@ export const deleteContest = async (
     // first remove all question connections
     await prisma.contest.update({
       where: {
-        id: contestId
+        id: contest.id
       },
       data: {
         questions: {
@@ -64,11 +64,11 @@ export const deleteContest = async (
     // then delete the contest
     await prisma.contest.delete({
       where: {
-        id: contestId
+        id: contest.id
       }
     });
 
-     res.json({
+    res.json({
       message: 'Contest deleted successfully'
     });
 

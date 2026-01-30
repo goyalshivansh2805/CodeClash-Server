@@ -26,39 +26,57 @@ export const updateContestLeaderboard = async (
   next: NextFunction
 ): Promise<void> => {
   try {
-    const contestId = req.params.contestId;
-    if (!contestId) {
+    const contestIdParam = req.params.contestId;
+    if (!contestIdParam) {
       throw new CustomError('Contest ID is required', 400);
     }
 
+    // Check for UUID format
+    const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(contestIdParam);
+
     // Check if contest exists and is active
     const contest = await prisma.contest.findUnique({
-      where: { 
-        id: contestId,
-        endTime: { gte: new Date() }
+      where: isUUID ? {
+        id: contestIdParam,
+        // Prisma doesn't support combined unique + valid logic in findUnique easily unless using composite ID, 
+        // but findUnique can only filter by unique fields. 
+        // Actually, we should find unique first, then check conditions.
+      } : {
+        slug: contestIdParam
       },
-      select: { id: true,
+      select: {
+        id: true,
+        endTime: true,
         questions: {
           select: {
             id: true,
             score: true
           }
         }
-       }
+      }
     });
 
     if (!contest) {
+      throw new CustomError('Contest not found', 404);
+    }
+
+    // Check endTime manually since findUnique only supports unique filters
+    if (new Date() > contest.endTime) {
+      // Original code: EndTime must be >= Now. So if EndTime < Now, it's not found/invalid.
       throw new CustomError('Contest not found or ended', 404);
     }
+
+    const resolvedContestId = contest.id;
+
     const participants = await prisma.contestParticipation.findMany({
-      where: { contestId },
+      where: { contestId: resolvedContestId },
       select: { userId: true }
     });
     // Get all accepted submissions grouped by user
     const submissions = await prisma.submission.groupBy({
       by: ['userId', 'questionId'],
       where: {
-        contestId,
+        contestId: resolvedContestId,
         status: 'ACCEPTED'
       },
       _min: {
@@ -67,7 +85,7 @@ export const updateContestLeaderboard = async (
     });
 
     // Calculate scores and update leaderboard
-    const userScores = new Map<string,userScore>(
+    const userScores = new Map<string, userScore>(
       participants.map(p => [p.userId, {
         problemsSolved: 0,
         totalScore: 0,
@@ -93,12 +111,12 @@ export const updateContestLeaderboard = async (
         prisma.contestLeaderboard.upsert({
           where: {
             contestId_userId: {
-              contestId,
+              contestId: resolvedContestId,
               userId
             }
           },
           create: {
-            contestId,
+            contestId: resolvedContestId,
             userId,
             score: data.totalScore,
             problemsSolved: data.problemsSolved,
@@ -114,7 +132,7 @@ export const updateContestLeaderboard = async (
     );
 
     // Update ranks
-    await updateLeaderboardRanks(contestId);
+    await updateLeaderboardRanks(resolvedContestId);
 
     res.json({
       message: 'Leaderboard updated successfully',
@@ -132,18 +150,23 @@ export const getContestLeaderboard = async (
   next: NextFunction
 ): Promise<void> => {
   try {
-    const contestId = req.params.contestId;
+    const contestIdParam = req.params.contestId;
     const page = parseInt(req.query.page as string) || 1;
     const limit = parseInt(req.query.limit as string) || 50;
     const skip = (page - 1) * limit;
 
+    const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(contestIdParam);
+
     const contest = await prisma.contest.findUnique({
-      where: { id: contestId }
+      where: isUUID ? { id: contestIdParam } : { slug: contestIdParam },
+      select: { id: true }
     });
 
     if (!contest) {
       throw new CustomError('Contest not found', 404);
     }
+
+    const contestId = contest.id;
 
     const [leaderboard, total] = await Promise.all([
       prisma.contestLeaderboard.findMany({
@@ -213,11 +236,24 @@ export const getUserContestRank = async (
 ): Promise<void> => {
   try {
     const userId = req.user?.id;
-    const contestId = req.params.contestId;
+    const contestIdParam = req.params.contestId;
 
-    if (!userId || !contestId) {
+    if (!userId || !contestIdParam) {
       throw new CustomError('User ID and Contest ID are required', 400);
     }
+
+    const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(contestIdParam);
+
+    const contest = await prisma.contest.findUnique({
+      where: isUUID ? { id: contestIdParam } : { slug: contestIdParam },
+      select: { id: true }
+    });
+
+    if (!contest) {
+      throw new CustomError('Contest not found', 404);
+    }
+
+    const contestId = contest.id;
 
     const userRank = await prisma.contestLeaderboard.findUnique({
       where: {
@@ -240,7 +276,7 @@ export const getUserContestRank = async (
       throw new CustomError('User has not participated in this contest', 404);
     }
 
-     res.json({
+    res.json({
       rank: userRank.rank,
       score: userRank.score,
       problemsSolved: userRank.problemsSolved,

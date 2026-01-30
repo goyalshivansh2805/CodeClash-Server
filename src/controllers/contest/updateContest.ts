@@ -26,23 +26,26 @@ export const updateContest = async (
       throw new CustomError('User not found', 401);
     }
 
-    const contestId = req.params.contestId;
-    if (!contestId) {
+    const contestIdParam = req.params.contestId;
+    if (!contestIdParam) {
       throw new CustomError('Contest ID is required', 400);
     }
 
-    const existingContest = await prisma.contest.findFirst({
-      where: {
-        id: contestId,
-        creatorId: userId
-      },
+    const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(contestIdParam);
+
+    const existingContest = await prisma.contest.findUnique({
+      where: isUUID ? { id: contestIdParam } : { slug: contestIdParam },
       include: {
         participants: true
       }
     });
 
     if (!existingContest) {
-      throw new CustomError('Contest not found or unauthorized', 404);
+      throw new CustomError('Contest not found', 404);
+    }
+
+    if (existingContest.creatorId !== userId) {
+      throw new CustomError('Unauthorized', 403);
     }
 
     // Adding Questions to a contest that has already started or has participants is not allowed
@@ -113,7 +116,7 @@ export const updateContest = async (
 
     const updatedContest = await prisma.contest.update({
       where: {
-        id: contestId
+        id: existingContest.id
       },
       data: {
         ...(title && { title }),
@@ -140,7 +143,7 @@ export const updateContest = async (
       }
     });
 
-     res.json({
+    res.json({
       message: 'Contest updated successfully',
       contest: updatedContest
     });
