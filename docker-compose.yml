@@ -1,6 +1,7 @@
 services:
   app:
     image: code-clash-prod:latest
+    restart: always
     build:
       context: .
       dockerfile: Dockerfile.prod
@@ -19,6 +20,7 @@ services:
       - codeclash-network
   db:
     image: postgres:15-alpine
+    restart: always
     ports:
       - "${POSTGRES_PORT}:5432"
     environment:
@@ -38,6 +40,7 @@ services:
       - codeclash-network
   redis:
     image: redis:latest
+    restart: always
     container_name: codeclash-server-redis
     ports:
       - "6379:6379"
