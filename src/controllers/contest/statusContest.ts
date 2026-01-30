@@ -42,7 +42,7 @@ export const startContest = async (
     // }
 
     await prisma.contest.update({
-      where: { id: contestId },
+      where: { id: contest.id },
       data: {
         status: ContestStatus.ONGOING,
         startTime: now
@@ -92,7 +92,7 @@ export const endContest = async (
 
     const now = new Date();
     await prisma.contest.update({
-      where: { id: contestId },
+      where: { id: contest.id },
       data: {
         status: ContestStatus.ENDED,
         endTime: now
