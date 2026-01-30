@@ -4,6 +4,7 @@ import {
   createContest,
   updateContest,
   deleteContest,
+  removeQuestion,
   joinContest,
   getContestDetails,
   createQuestion,
@@ -34,6 +35,7 @@ router.post('/addQuestions', createQuestion);
 router.post('/addQuestionsFromLibrary', addQuestionToContestFromLibrary);
 router.put('/updateQuestions', updateQuestion);
 router.delete('/deleteQuestions', deleteQuestion);
+router.put('/removeQuestions', removeQuestion);
 router.get('/questions/all', getAllQuestions);
 
 
