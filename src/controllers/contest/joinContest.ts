@@ -66,6 +66,7 @@ export const joinContest = async (
         contest: {
           select: {
             title: true,
+            slug: true,
             startTime: true,
             endTime: true
           }
