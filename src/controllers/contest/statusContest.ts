@@ -19,15 +19,21 @@ export const startContest = async (
 
     const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(contestIdParam);
 
-    const contest = await prisma.contest.findUnique({
+    const [contest,user] = await Promise.all([prisma.contest.findUnique({
       where: isUUID ? { id: contestIdParam } : { slug: contestIdParam }
-    });
+    }),
+    prisma.user.findUnique({
+      where: {
+        id: userId
+      }
+    })
+    ]);
 
     if (!contest) {
       throw new CustomError('Contest not found', 404);
     }
 
-    if (contest.creatorId !== userId) {
+    if ((contest.creatorId !== userId) && !user?.isAdmin) {
       throw new CustomError('Unauthorized', 403);
     }
 
@@ -74,15 +80,21 @@ export const endContest = async (
 
     const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(contestIdParam);
 
-    const contest = await prisma.contest.findUnique({
+    const [contest,user] = await Promise.all([prisma.contest.findUnique({
       where: isUUID ? { id: contestIdParam } : { slug: contestIdParam }
-    });
+    }),
+    prisma.user.findFirst({
+      where: {
+        id: userId
+      }
+    })
+    ]);
 
     if (!contest) {
       throw new CustomError('Contest not found', 404);
     }
 
-    if (contest.creatorId !== userId) {
+    if ((contest.creatorId !== userId) && !user?.isAdmin) {
       throw new CustomError('Unauthorized', 403);
     }
 
