@@ -37,7 +37,8 @@ export const handleRunCode = async (req: CustomRequest, res: Response, next: Nex
     const contest = await prisma.contest.findFirst({
       where: { 
         ...(isUUID ? { id: contestIdParam } : { slug: contestIdParam }),
-        status: 'ONGOING',
+        startTime: { lte: new Date() },  
+        endTime: { gte: new Date() },
         participants: { some: { userId } },
         questions: { some: { id: questionId } }
       }
@@ -46,8 +47,6 @@ export const handleRunCode = async (req: CustomRequest, res: Response, next: Nex
     if (!contest) {
       throw new CustomError('Contest not found or not active', 404);
     }
-
-    const contestId = contest.id;
 
     const job = await runQueue.add('run-code', {
       code,
