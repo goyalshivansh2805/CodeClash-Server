@@ -211,7 +211,7 @@ export const handleSubmitCode = async (
     // If solution is accepted, update contest participation score
     if (isAccepted && userPreviousSubmission === null) {
       // Update contest leaderboard
-        Promise.all([await prisma.contestParticipation.update({
+        await Promise.all([prisma.contestParticipation.update({
           where: {
             userId_contestId: {
               userId,
@@ -223,7 +223,7 @@ export const handleSubmitCode = async (
               increment: question.score
             }
           }
-        }),await prisma.contestLeaderboard.upsert({
+        }), prisma.contestLeaderboard.upsert({
           where: {
             contestId_userId: {
               contestId,
