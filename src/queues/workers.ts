@@ -4,12 +4,12 @@ import { invokeLambda } from "../services/lambda.service";
 
 const runWorker = new Worker("runQueue",
     async(job)=>{
-        const {code,language,input,timeout,taskId,userId} = job.data;
+        const {code,language,input,timeoutMs,taskId,userId} = job.data;
         return await invokeLambda({
             code,
             language,
             input,
-            timeout: timeout || 5,
+            timeoutMs: timeoutMs || 5000,
             taskId,
             userId
           });
@@ -23,12 +23,12 @@ const runWorker = new Worker("runQueue",
 
 const submitWorker = new Worker('submitQueue',
     async (job) => {
-      const { code, language, input, timeout, taskId, userId } = job.data;
+      const { code, language, input, timeoutMs, taskId, userId } = job.data;
       return await invokeLambda({
         code,
         language,
         input,
-        timeout:timeout || 5,
+        timeoutMs:timeoutMs || 5000,
         taskId,
         userId
       });

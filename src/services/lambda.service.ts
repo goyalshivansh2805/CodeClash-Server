@@ -5,7 +5,7 @@ interface CodeExecutionPayload {
   code: string;
   language: string;
   input: string;
-  timeout: number;
+  timeoutMs: number;
   taskId: string;
   userId: string;
 }
