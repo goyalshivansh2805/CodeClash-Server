@@ -6,8 +6,8 @@ import { ContestStatus } from "@prisma/client";
 const getAllContests = async (req: CustomRequest, res: Response, next: NextFunction) => {
   try {
     const userId = req.user?.id;
-    const status = req.query.status as string;
-    if(status !== ContestStatus.ONGOING && status !== ContestStatus.UPCOMING && status !== ContestStatus.ENDED){
+    const statusFilter = req.query.status as string;
+    if(statusFilter !== ContestStatus.ONGOING && statusFilter !== ContestStatus.UPCOMING && statusFilter !== ContestStatus.ENDED){
         throw new CustomError("Invalid status", 400);
     }
     const page = parseInt(req.query.page as string) || 1;
@@ -24,38 +24,76 @@ const getAllContests = async (req: CustomRequest, res: Response, next: NextFunct
     if (!user?.isAdmin) {
       throw new CustomError("Unauthorized: Admin access required", 403);
     }
-    const contests = await prisma.contest.findMany({
-        where: {
-            status: status as ContestStatus
-        },
+
+    const now = new Date();
+    
+    // Build dynamic where clause based on actual time, not status field
+    let whereClause = {};
+    if (statusFilter === ContestStatus.UPCOMING) {
+      whereClause = { startTime: { gt: now } };
+    } else if (statusFilter === ContestStatus.ONGOING) {
+      whereClause = { 
+        startTime: { lte: now },
+        endTime: { gte: now }
+      };
+    } else if (statusFilter === ContestStatus.ENDED) {
+      whereClause = { endTime: { lt: now } };
+    }
+
+    const [contests, total] = await Promise.all([
+      prisma.contest.findMany({
+        where: whereClause,
         skip,
         take: limit,
-      select: {
-        id: true,
-        title: true,
-        startTime: true,
-        endTime: true,
-        status: true,
-        creator: {
+        select: {
+          id: true,
+          title: true,
+          startTime: true,
+          endTime: true,
+          status: true,
+          creator: {
             select: {
-                id: true,
-                username: true
+              id: true,
+              username: true
             }
+          }
+        },
+        orderBy: {
+          createdAt: 'desc'
         }
+      }),
+      prisma.contest.count({
+        where: whereClause
+      })
+    ]);
+
+    // Calculate real-time status for each contest
+    const contestsWithRealStatus = contests.map(contest => {
+      let realStatus: ContestStatus;
+      if (now < contest.startTime) {
+        realStatus = ContestStatus.UPCOMING;
+      } else if (now >= contest.startTime && now <= contest.endTime) {
+        realStatus = ContestStatus.ONGOING;
+      } else {
+        realStatus = ContestStatus.ENDED;
       }
+
+      return {
+        ...contest,
+        status: realStatus
+      };
     });
-    const total = await prisma.contest.count({
-        where: {
-            status: status as ContestStatus
-        }
-    });
+
     const totalPages = Math.ceil(total / limit);
-    res.status(200).json({contests, meta: {
+    res.status(200).json({
+      contests: contestsWithRealStatus, 
+      meta: {
         total,
         page,
         limit,
         totalPages
-    }});
+      }
+    });
   } catch (error) {
     next(error);
   }

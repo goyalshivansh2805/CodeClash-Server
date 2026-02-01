@@ -37,7 +37,8 @@ export const handleRunCode = async (req: CustomRequest, res: Response, next: Nex
     const contest = await prisma.contest.findFirst({
       where: { 
         ...(isUUID ? { id: contestIdParam } : { slug: contestIdParam }),
-        status: 'ONGOING',
+        startTime: { lte: new Date() },  
+        endTime: { gte: new Date() },
         participants: { some: { userId } },
         questions: { some: { id: questionId } }
       }
@@ -46,8 +47,6 @@ export const handleRunCode = async (req: CustomRequest, res: Response, next: Nex
     if (!contest) {
       throw new CustomError('Contest not found or not active', 404);
     }
-
-    const contestId = contest.id;
 
     const job = await runQueue.add('run-code', {
       code,
@@ -211,7 +210,7 @@ export const handleSubmitCode = async (
     // If solution is accepted, update contest participation score
     if (isAccepted && userPreviousSubmission === null) {
       // Update contest leaderboard
-        Promise.all([await prisma.contestParticipation.update({
+        await Promise.all([prisma.contestParticipation.update({
           where: {
             userId_contestId: {
               userId,
@@ -223,7 +222,7 @@ export const handleSubmitCode = async (
               increment: question.score
             }
           }
-        }),await prisma.contestLeaderboard.upsert({
+        }), prisma.contestLeaderboard.upsert({
           where: {
             contestId_userId: {
               contestId,
