@@ -4,6 +4,7 @@ export {createQuestion, addQuestionToContestFromLibrary} from "./createQues";
 export {deleteContest} from "./deleteContest";
 export {joinContest} from "./joinContest"
 export {deleteQuestion} from "./deleteQues";
+export {removeQuestion} from "./removeQues";
 export {getContestDetails} from "./getContestByID";
 
 export {updateContestLeaderboard , getContestLeaderboard , getUserContestRank} from "./leaderboard";

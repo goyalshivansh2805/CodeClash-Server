@@ -4,6 +4,7 @@ import {
   createContest,
   updateContest,
   deleteContest,
+  removeQuestion,
   joinContest,
   getContestDetails,
   createQuestion,
@@ -34,6 +35,7 @@ router.post('/addQuestions', createQuestion);
 router.post('/addQuestionsFromLibrary', addQuestionToContestFromLibrary);
 router.put('/updateQuestions', updateQuestion);
 router.delete('/deleteQuestions', deleteQuestion);
+router.put('/removeQuestions', removeQuestion);
 router.get('/questions/all', getAllQuestions);
 
 
@@ -59,6 +61,8 @@ router.get('/:contestId/status', getContestStatus);
 // Code submission routes
 router.post('/:contestId/questions/:questionId/run', handleRunCode);
 router.post('/:contestId/questions/:questionId/submit', handleSubmitCode);
+router.post('/practice/questions/:questionId/run', handleRunCode);
+router.post('/practice/questions/:questionId/submit', handleSubmitCode);
 
 // Contest submission routes
 router.get('/:contestId/questions/:questionId/submissions', getSubmissionByQuestionIdAndContestId);
