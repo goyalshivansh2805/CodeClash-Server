@@ -43,10 +43,13 @@ export const handleRunCode = async (req: CustomRequest, res: Response, next: Nex
         questions: { some: { id: questionId } }
       }
     });
+    
+    // Removing the contest check so that code can be runned
 
-    if (!contest) {
-      throw new CustomError('Contest not found or not active', 404);
-    }
+
+    // if (!contest) {
+    //   throw new CustomError('Contest not found or not active', 404);
+    // }
 
     const job = await runQueue.add('run-code', {
       code,
