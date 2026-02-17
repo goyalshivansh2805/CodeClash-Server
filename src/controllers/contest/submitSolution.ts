@@ -5,6 +5,7 @@ import { CustomError, CustomRequest } from '../../types';
 import { invokeLambda } from '../../services/lambda.service';
 import { runQueue, submitQueue, submitQueueEvents } from '../../queues/queues';
 import { runQueueEvents } from '../../queues/queues';
+import { SubmissionStatus } from '@prisma/client';
 
 enum ALLOWED_LANGUAGES {
   'python' = 'python',
@@ -75,21 +76,24 @@ export const handleSubmitCode = async (
     const questionId = req.params.questionId;
     const userId = req.user?.id;
 
+    // Check authentication
     if (!userId) {
       throw new CustomError('Unauthorized', 401);
     }
 
+    // Validate language
     if(!ALLOWED_LANGUAGES[language as keyof typeof ALLOWED_LANGUAGES]){
       throw new CustomError('Invalid language', 400);
     }
 
+    // Validate params
     if (!contestIdParam || !questionId) {
       throw new CustomError('Contest ID and Question ID are required', 400);
     }
 
     const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(contestIdParam);
 
-    // Check if contest exists and is ongoing
+    // Fetch contest and question
     const contest = await prisma.contest.findFirst({
       where: { 
         ...(isUUID ? { id: contestIdParam } : { slug: contestIdParam }),
@@ -109,29 +113,31 @@ export const handleSubmitCode = async (
       }
     });
 
+    // Contest must exist and be active
     if (!contest) {
       throw new CustomError('Contest not found or not active', 404);
     }
 
     const contestId = contest.id;
 
-    // Check if user has joined the contest
+    // Check user participation
     const participation = await prisma.contestParticipation.findUnique({
       where: {
-        userId_contestId: {
-          userId,
-          contestId
-        }
+        userId_contestId: { userId, contestId }
       }
     });
 
     if (!participation) {
       throw new CustomError('You have not joined this contest', 403);
     }
+
     if(participation.isBanned) {
       throw new CustomError('You have been banned from this contest', 403);
     }
+
     const question = contest.questions[0];
+
+    // Ensure question exists
     if (!question) {
       throw new CustomError('Question not found', 404);
     }
@@ -142,6 +148,7 @@ export const handleSubmitCode = async (
 
     // Run test cases
     for (const testCase of question.testCases) {
+
       const job = await submitQueue.add('submit-code', {
         code,
         language,
@@ -153,12 +160,16 @@ export const handleSubmitCode = async (
 
       const result = await job.waitUntilFinished(submitQueueEvents);
 
+      // Handle runtime or TLE
       if (result.error) {
+
         await prisma.submission.create({
           data: {
             code,
             language,
-            status: result.error === 'TIME_LIMIT_EXCEEDED' ? 'TIME_LIMIT_EXCEEDED' : 'RUNTIME_ERROR',
+            status: result.error === 'TIME_LIMIT_EXCEEDED'
+              ? 'TIME_LIMIT_EXCEEDED'
+              : 'RUNTIME_ERROR',
             contestId,
             questionId,
             userId,
@@ -169,10 +180,13 @@ export const handleSubmitCode = async (
             score: 0
           }
         });
+
         throw new CustomError(result.error, 400, result.error);
       }
 
       totalExecutionTime += result.executionTime || 0;
+
+      // Compare output
       if (result.output?.trim() === testCase.output.trim()) {
         passedTests++;
       } else {
@@ -181,80 +195,101 @@ export const handleSubmitCode = async (
       }
     }
 
-    const isAccepted = passedTests === question.testCases.length;
-    const userPreviousSubmission = await prisma.submission.findFirst({
+    const totalTestCases = question.testCases.length;
+
+    // Calculate partial score
+    const partialScore = Math.floor(
+      (passedTests / totalTestCases) * question.score
+    );
+
+    let finalStatus: SubmissionStatus;
+
+    // Decide final status
+    if (passedTests === totalTestCases) {
+      finalStatus = "ACCEPTED";
+    } else if (passedTests > 0) {
+      finalStatus = "WRONG_ANSWER";
+    } else {
+      finalStatus = "WRONG_ANSWER";
+    }
+
+    // Get previous best submission
+    const previousBest = await prisma.submission.findFirst({
       where:{
         contestId,
         userId,
-        questionId,
-        status:"ACCEPTED"
+        questionId
+      },
+      orderBy:{
+        score:"desc"
       }
     });
-    // Create submission record
+
+    const previousScore = previousBest?.score || 0;
+
+    // Create new submission
     const submission = await prisma.submission.create({
       data: {
         code,
         language,
-        status: isAccepted ? 'ACCEPTED' : 'WRONG_ANSWER',
+        status: finalStatus,
         contestId,
         questionId,
         userId,
-        executionTime: Math.round(totalExecutionTime / question.testCases.length),
+        executionTime: Math.round(totalExecutionTime / totalTestCases),
         failedTestCase,
         passedTestCases: passedTests,
-        totalTestCases: question.testCases.length,
-        score: isAccepted ? question.score : 0
+        totalTestCases,
+        score: partialScore
       }
     });
 
-    // If solution is accepted, update contest participation score
-    if (isAccepted && userPreviousSubmission === null) {
-      // Update contest leaderboard
-        await Promise.all([prisma.contestParticipation.update({
-          where: {
-            userId_contestId: {
-              userId,
-              contestId
-            }
-          },
-          data: {
-            score: {
-              increment: question.score
-            }
-          }
-        }), prisma.contestLeaderboard.upsert({
-          where: {
-            contestId_userId: {
-              contestId,
-              userId
-            }
-          },
-          create: {
-            userId,
-            contestId,
-            score: question.score,
-            problemsSolved: 1,
-            lastSubmissionTime: new Date()
-          },
-          update: {
-            score: { increment: question.score },
-            problemsSolved: { increment: 1 },
-            lastSubmissionTime: new Date()
-          }
-        })])
+    // Update scores only if improved
+    if (partialScore > previousScore) {
+
+      const scoreDiff = partialScore - previousScore;
+
+      await prisma.contestParticipation.update({
+        where: {
+          userId_contestId: { userId, contestId }
+        },
+        data: {
+          score: { increment: scoreDiff }
+        }
+      });
+
+      await prisma.contestLeaderboard.upsert({
+        where: {
+          contestId_userId: { contestId, userId }
+        },
+        create: {
+          userId,
+          contestId,
+          score: partialScore,
+          problemsSolved: finalStatus === "ACCEPTED" ? 1 : 0,
+          lastSubmissionTime: new Date()
+        },
+        update: {
+          score: { increment: scoreDiff },
+          problemsSolved: finalStatus === "ACCEPTED" && previousScore === 0
+            ? { increment: 1 }
+            : undefined,
+          lastSubmissionTime: new Date()
+        }
+      });
     }
 
     res.json({
       submissionId: submission.id,
       status: submission.status,
       testCasesPassed: passedTests,
-      totalTestCases: question.testCases.length,
+      totalTestCases,
       executionTime: submission.executionTime,
       failedTestCase,
-      score: isAccepted ? question.score : 0
+      score: partialScore
     });
 
   } catch (error) {
     next(error);
   }
-}; 
+};
